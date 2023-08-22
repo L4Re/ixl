@@ -1,0 +1,3 @@
+provides: libixylon
+requires: libc
+maintainer: till.miemietz@barkhauseninstitut.org
