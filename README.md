@@ -7,4 +7,4 @@ See also the LICENSE file in this directory.
 
 ### TODOs
 
-* Re-enable huge pages for memory allocation.
+* Re-enable Virtio driver.

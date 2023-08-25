@@ -6,15 +6,15 @@
 
 const int BATCH_SIZE = 32;
 
-static void forward(struct ixy_device* rx_dev, uint16_t rx_queue, struct ixy_device* tx_dev, uint16_t tx_queue) {
+static void forward(Ixl::Ixl_device* rx_dev, uint16_t rx_queue, Ixl::Ixl_device* tx_dev, uint16_t tx_queue) {
 	struct pkt_buf* bufs[BATCH_SIZE];
-	uint32_t num_rx = ixy_rx_batch(rx_dev, rx_queue, bufs, BATCH_SIZE);
+	uint32_t num_rx = rx_dev->rx_batch(rx_queue, bufs, BATCH_SIZE);
 	if (num_rx > 0) {
 		// touch all packets, otherwise it's a completely unrealistic workload if the packet just stays in L3
 		for (uint32_t i = 0; i < num_rx; i++) {
 			bufs[i]->data[1]++;
 		}
-		uint32_t num_tx = ixy_tx_batch(tx_dev, tx_queue, bufs, num_rx);
+		uint32_t num_tx = tx_dev->tx_batch(tx_queue, bufs, num_rx);
 		// there are two ways to handle the case that packets are not being sent out:
 		// either wait on tx or drop them; in this case it's better to drop them, otherwise we accumulate latency
 		for (uint32_t i = num_tx; i < num_rx; i++) {
@@ -30,16 +30,14 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	struct ixy_device* dev1 = ixy_init(argv[1], 1, 1, -1);
-	struct ixy_device* dev2 = ixy_init(argv[2], 1, 1, 0);
+	Ixl::Ixl_device* dev1 = Ixl::Ixl_device::ixl_init(argv[1], 1, 1, -1);
+	Ixl::Ixl_device* dev2 = Ixl::Ixl_device::ixl_init(argv[2], 1, 1, 0);
 
-	uint64_t last_stats_printed = monotonic_time();
-	struct device_stats stats1, stats1_old;
-	struct device_stats stats2, stats2_old;
-	stats_init(&stats1, dev1);
-	stats_init(&stats1_old, dev1);
-	stats_init(&stats2, dev2);
-	stats_init(&stats2_old, dev2);
+	uint64_t last_stats_printed = Ixl::device_stats::monotonic_time();
+	Ixl::device_stats stats1(dev1);
+	Ixl::device_stats stats1_old(dev1);
+	Ixl::device_stats stats2(dev2);
+	Ixl::device_stats stats2_old(dev2);
 
 	uint64_t counter = 0;
 	while (true) {
@@ -48,15 +46,15 @@ int main(int argc, char* argv[]) {
 
 		// don't poll the time unnecessarily
 		if ((counter++ & 0xFFF) == 0) {
-			uint64_t time = monotonic_time();
+			uint64_t time = Ixl::device_stats::monotonic_time();
 			if (time - last_stats_printed > 1000 * 1000 * 1000) {
 				// every second
-				ixy_read_stats(dev1, &stats1);
-				print_stats_diff(&stats1, &stats1_old, time - last_stats_printed);
+				dev1->read_stats(&stats1);
+				Ixl::device_stats::print_stats_diff(&stats1, &stats1_old, time - last_stats_printed);
 				stats1_old = stats1;
 				if (dev1 != dev2) {
-					ixy_read_stats(dev2, &stats2);
-					print_stats_diff(&stats2, &stats2_old, time - last_stats_printed);
+					dev2->read_stats(&stats2);
+					Ixl::device_stats::print_stats_diff(&stats2, &stats2_old, time - last_stats_printed);
 					stats2_old = stats2;
 				}
 				last_stats_printed = time;

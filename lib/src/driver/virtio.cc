@@ -23,7 +23,7 @@ static uint8_t virtio_legacy_get_status(struct virtio_device* dev) {
 
 static void virtio_legacy_check_status(struct virtio_device* dev) {
 	if (read_io8(dev->fd, VIRTIO_PCI_STATUS) == VIRTIO_CONFIG_STATUS_FAILED) {
-		error("Device signaled unrecoverable error");
+		ixl_error("Device signaled unrecoverable error");
 	}
 }
 
@@ -41,31 +41,31 @@ static inline void virtio_legacy_vring_init(struct vring* vr, unsigned int num, 
 	vr->num = num;
 	vr->desc = (struct vring_desc*)p;
 	vr->avail = (struct vring_avail*)(p + num * sizeof(struct vring_desc));
-	vr->used = (void*)RTE_ALIGN_CEIL((uintptr_t)(&vr->avail->ring[num]), align);
+	vr->used = (vring_used *)RTE_ALIGN_CEIL((uintptr_t)(&vr->avail->ring[num]), align);
 }
 
 static void virtio_legacy_setup_tx_queue(struct virtio_device* dev, uint16_t idx) {
 	if (idx != 1 && idx != 2) {
-		error("Can't setup queue %u as Tx queue", idx);
+		ixl_error("Can't setup queue %u as Tx queue", idx);
 	}
 
 	// Create virt queue itself - Section 4.1.5.1.3
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_SEL);
 	uint32_t max_queue_size = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NUM);
-	debug("Max queue size of tx queue #%u: %u", idx, max_queue_size);
+	ixl_debug("Max queue size of tx queue #%u: %u", idx, max_queue_size);
 	if (max_queue_size == 0) {
 		return;
 	}
 	size_t virt_queue_mem_size = virtio_legacy_vring_size(max_queue_size, 4096);
 	struct dma_memory mem = memory_allocate_dma(virt_queue_mem_size, true);
 	memset(mem.virt, 0xab, virt_queue_mem_size);
-	debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
+	ixl_debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
 	write_io32(dev->fd, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT, VIRTIO_PCI_QUEUE_PFN);
 
 	// Section 2.4.2 for layout
-	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
-	virtio_legacy_vring_init(&vq->vring, max_queue_size, mem.virt, 4096);
-	debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
+	struct virtqueue* vq = (struct virtqueue *) calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
+	virtio_legacy_vring_init(&vq->vring, max_queue_size, (uint8_t *) mem.virt, 4096);
+	ixl_debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
 	for (size_t i = 0; i < vq->vring.num; ++i) {
 		vq->vring.desc[i].len = 0;
 		vq->vring.desc[i].addr = 0;
@@ -81,7 +81,7 @@ static void virtio_legacy_setup_tx_queue(struct virtio_device* dev, uint16_t idx
 
 	// Section 4.1.4.4
 	uint32_t notify_offset = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NOTIFY);
-	debug("vq notifcation offset %u", notify_offset);
+	ixl_debug("vq notifcation offset %u", notify_offset);
 	vq->notification_offset = notify_offset;
 
 	// Ctrl queue packets are not supplied by the user
@@ -101,13 +101,13 @@ static void virtio_legacy_setup_tx_queue(struct virtio_device* dev, uint16_t idx
 }
 
 static void virtio_legacy_send_command(struct virtio_device* dev, void* cmd, size_t cmd_len) {
-	struct virtqueue* vq = dev->ctrl_queue;
+	struct virtqueue* vq = (struct virtqueue *) dev->ctrl_queue;
 
 	if (cmd_len < sizeof(struct virtio_net_ctrl_hdr)) {
-		error("Command can not be shorter than control header");
+		ixl_error("Command can not be shorter than control header");
 	}
 	if (((uint8_t*)cmd)[0] != VIRTIO_NET_CTRL_RX) {
-		error("Command class is not supported");
+		ixl_error("Command class is not supported");
 	}
 
 	_mm_mfence();
@@ -120,14 +120,14 @@ static void virtio_legacy_send_command(struct virtio_device* dev, void* cmd, siz
 		}
 	}
 	if (idx == vq->vring.num) {
-		error("command queue full");
+		ixl_error("command queue full");
 	} else {
-		debug("Found free desc slot at %u (%u)", idx, vq->vring.num);
+		ixl_debug("Found free desc slot at %u (%u)", idx, vq->vring.num);
 	}
 
 	struct pkt_buf* buf = pkt_buf_alloc(vq->mempool);
 	if (!buf) {
-		error("Control queue ran out of buffers");
+		ixl_error("Control queue ran out of buffers");
 	}
 	memcpy(buf->data, cmd, cmd_len);
 	vq->virtual_addresses[idx] = buf;
@@ -168,18 +168,18 @@ static void virtio_legacy_send_command(struct virtio_device* dev, void* cmd, siz
 	// Wait until the buffer got processed
 	while (vq->vq_used_last_idx == vq->vring.used->idx) {
 		_mm_mfence();
-		debug("Waiting...");
+		ixl_debug("Waiting...");
 		usleep(100000);
 	}
 	vq->vq_used_last_idx++;
 	// Check status and free buffer
 	struct vring_used_elem* e = &vq->vring.used->ring[vq->vring.used->idx];
-	debug("e %p: id %u len %u", e, e->id, e->len);
+	ixl_debug("e %p: id %u len %u", e, e->id, e->len);
 	if (e->id != idx) {
-		error("Used buffer has different index as sent one");
+		ixl_error("Used buffer has different index as sent one");
 	}
 	if (vq->virtual_addresses[idx] != buf) {
-		error("buffer differ");
+		ixl_error("buffer differ");
 	}
 	pkt_buf_free(buf);
 	vq->vring.desc[idx] = (struct vring_desc){};
@@ -195,12 +195,12 @@ static void virtio_legacy_set_promiscuous(struct virtio_device* dev, bool on) {
 	} __attribute__((__packed__)) cmd = {};
 	static_assert(sizeof(cmd) == 4, "Size of command struct wrong");
 
-	cmd.hdr.class = VIRTIO_NET_CTRL_RX;
+	cmd.hdr.pkt_class = VIRTIO_NET_CTRL_RX;
 	cmd.hdr.cmd = VIRTIO_NET_CTRL_RX_PROMISC;
 	cmd.on = on ? 1 : 0;
 
 	virtio_legacy_send_command(dev, &cmd, sizeof(cmd));
-	info("Set promisc to %u", on);
+	ixl_info("Set promisc to %u", on);
 }
 
 void virtio_set_promisc(struct ixy_device* ixy, bool enabled) {
@@ -220,28 +220,28 @@ static const struct virtio_legacy_net_hdr net_hdr = {
 
 static void virtio_legacy_setup_rx_queue(struct virtio_device* dev, uint16_t idx) {
 	if (idx != 0) {
-		error("Can't setup Tx queue as Rx");
+		ixl_error("Can't setup Tx queue as Rx");
 	}
 
 	// Create virt queue itself - Section 4.1.5.1.3
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_SEL);
 	uint32_t max_queue_size = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NUM);
-	debug("Max queue size of rx queue #%u: %u", idx, max_queue_size);
+	ixl_debug("Max queue size of rx queue #%u: %u", idx, max_queue_size);
 	if (max_queue_size == 0) {
 		return;
 	}
 	uint32_t notify_offset = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NOTIFY);
-	debug("Notifcation offset %u", notify_offset);
+	ixl_debug("Notifcation offset %u", notify_offset);
 	size_t virt_queue_mem_size = virtio_legacy_vring_size(max_queue_size, 4096);
 	struct dma_memory mem = memory_allocate_dma(virt_queue_mem_size, true);
 	memset(mem.virt, 0xab, virt_queue_mem_size);
-	debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
+	ixl_debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
 	write_io32(dev->fd, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT, VIRTIO_PCI_QUEUE_PFN);
 
 	// Section 2.4.2 for layout
-	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
-	virtio_legacy_vring_init(&vq->vring, max_queue_size, mem.virt, 4096);
-	debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
+	struct virtqueue* vq = (struct virtqueue *) calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
+	virtio_legacy_vring_init(&vq->vring, max_queue_size, (uint8_t *) mem.virt, 4096);
+	ixl_debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
 	for (size_t i = 0; i < vq->vring.num; ++i) {
 		vq->vring.desc[i].len = 0;
 		vq->vring.desc[i].addr = 0;
@@ -272,7 +272,7 @@ static void virtio_legacy_setup_rx_queue(struct virtio_device* dev, uint16_t idx
 
 static void virtio_legacy_init(struct virtio_device* dev) {
 	// Section 3.1
-	debug("Configuring bar0");
+	ixl_debug("Configuring bar0");
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_RESET, VIRTIO_PCI_STATUS);
 	while (read_io8(dev->fd, VIRTIO_PCI_STATUS) != VIRTIO_CONFIG_STATUS_RESET) {
 		usleep(100);
@@ -281,16 +281,16 @@ static void virtio_legacy_init(struct virtio_device* dev) {
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_DRIVER, VIRTIO_PCI_STATUS);
 	// Negotiate features
 	uint32_t host_features = read_io32(dev->fd, VIRTIO_PCI_HOST_FEATURES);
-	debug("Host features: %x", host_features);
+	ixl_debug("Host features: %x", host_features);
 	const uint32_t required_features = (1u << VIRTIO_NET_F_CSUM) | (1u << VIRTIO_NET_F_GUEST_CSUM) |
 					   (1u << VIRTIO_NET_F_CTRL_VQ) | (1u << VIRTIO_F_ANY_LAYOUT) |
 					   (1u << VIRTIO_NET_F_CTRL_RX) /*| (1u<<VIRTIO_NET_F_MQ)*/;
 	if ((host_features & required_features) != required_features) {
-		error("Device does not support required features");
+		ixl_error("Device does not support required features");
 	}
-	debug("Guest features before negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
+	ixl_debug("Guest features before negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
 	write_io32(dev->fd, required_features, VIRTIO_PCI_GUEST_FEATURES);
-	debug("Guest features after negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
+	ixl_debug("Guest features after negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
 	// Queue setup - Section 5.1.2 for queue index calculation
 	// Legacy devices only have 3 queues
 	virtio_legacy_setup_rx_queue(dev, 0); // Rx
@@ -299,7 +299,7 @@ static void virtio_legacy_init(struct virtio_device* dev) {
 	_mm_mfence();
 	// Signal OK
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_DRIVER_OK, VIRTIO_PCI_STATUS);
-	info("Setup complete");
+	ixl_info("Setup complete");
 	// Recheck status
 	virtio_legacy_check_status(dev);
 	virtio_legacy_set_promiscuous(dev, true);
@@ -324,16 +324,16 @@ void virtio_read_stats(struct ixy_device* ixy, struct device_stats* stats) {
 
 struct ixy_device* virtio_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues) {
 	if (getuid()) {
-		warn("Not running as root, this will probably fail");
+		ixl_warn("Not running as root, this will probably fail");
 	}
 	if (rx_queues > 1) {
-		error("cannot configure %d rx queues: limit is %d", rx_queues, 1);
+		ixl_error("cannot configure %d rx queues: limit is %d", rx_queues, 1);
 	}
 	if (tx_queues > 1) {
-		error("cannot configure %d tx queues: limit is %d", tx_queues, 1);
+		ixl_error("cannot configure %d tx queues: limit is %d", tx_queues, 1);
 	}
 	remove_driver(pci_addr);
-	struct virtio_device* dev = calloc(1, sizeof(*dev));
+	struct virtio_device* dev = (struct virtio_device *) calloc(1, sizeof(*dev));
 	dev->ixy.pci_addr = strdup(pci_addr);
 	dev->ixy.driver_name = driver_name;
 	dev->ixy.num_rx_queues = rx_queues;
@@ -349,18 +349,18 @@ struct ixy_device* virtio_init(const char* pci_addr, uint16_t rx_queues, uint16_
 	close(config);
 	// Check config if device is legacy network card
 	if (device_id == 0x1000) {
-		info("Detected virtio legacy network card");
+		ixl_info("Detected virtio legacy network card");
 		dev->fd = pci_open_resource(pci_addr, "resource0", O_RDWR);
 		virtio_legacy_init(dev);
 	} else {
-		error("Modern device not supported");
+		ixl_error("Modern device not supported");
 	}
 	return &dev->ixy;
 }
 
 uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
-	struct virtqueue* vq = dev->rx_queue;
+	struct virtqueue* vq = (struct virtqueue *) dev->rx_queue;
 	uint32_t buf_idx;
 
 	_mm_mfence();
@@ -378,14 +378,14 @@ uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_b
 		vq->vq_used_last_idx++;
 		// We don't support chaining or indirect descriptors
 		if (desc->flags != VRING_DESC_F_WRITE) {
-			error("unsupported rx flags on descriptor: %x", desc->flags);
+			ixl_error("unsupported rx flags on descriptor: %x", desc->flags);
 		}
 		// info("Desc %lu %u %u %u", desc->addr, desc->len, desc->flags,
 		// desc->next);
 		*desc = (struct vring_desc){};
 
 		// Section 5.1.6.4
-		struct pkt_buf* buf = vq->virtual_addresses[e->id];
+		struct pkt_buf* buf = (struct pkt_buf *) vq->virtual_addresses[e->id];
 		buf->size = e->len - sizeof(net_hdr);
 		bufs[buf_idx] = buf;
 		//struct virtio_net_hdr* hdr = (void*)(buf->head_room + sizeof(buf->head_room) - sizeof(net_hdr));
@@ -403,7 +403,7 @@ uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_b
 		// info("Found free desc slot at %u (%u)", idx, vq->vring.num);
 		struct pkt_buf* buf = pkt_buf_alloc(vq->mempool);
 		if (!buf) {
-			error("failed to allocate new mbuf for rx, you are either leaking memory or your mempool is too small");
+			ixl_error("failed to allocate new mbuf for rx, you are either leaking memory or your mempool is too small");
 		}
 		buf->size = vq->mempool->buf_size;
 		memcpy(buf->head_room + sizeof(buf->head_room) - sizeof(net_hdr), &net_hdr, sizeof(net_hdr));
@@ -424,7 +424,7 @@ uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_b
 
 uint32_t virtio_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
-	struct virtqueue* vq = dev->tx_queue;
+	struct virtqueue* vq = (struct virtqueue *) dev->tx_queue;
 
 	_mm_mfence();
 	// Free sent buffers
@@ -436,7 +436,7 @@ uint32_t virtio_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_b
 		struct vring_desc* desc = &vq->vring.desc[e->id];
 		desc->addr = 0;
 		desc->len = 0;
-		pkt_buf_free(vq->virtual_addresses[e->id]);
+		pkt_buf_free((struct pkt_buf *) vq->virtual_addresses[e->id]);
 		vq->vq_used_last_idx++;
 		_mm_mfence();
 	}

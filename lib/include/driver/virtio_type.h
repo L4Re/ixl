@@ -130,7 +130,7 @@
 #define VIRTIO_NET_CTRL_RX_NOBCAST 5
 
 struct virtio_net_ctrl_hdr {
-	uint8_t class;
+	uint8_t pkt_class;
 	uint8_t cmd;
 } __attribute__((packed));
 

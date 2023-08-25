@@ -43,5 +43,5 @@ void check_interrupt(struct interrupt_queues* interrupt, uint64_t diff, uint32_t
 	} else {
 		interrupt->interrupt_enabled = true;
 	}
-	interrupt->last_time_checked = monotonic_time();
+	interrupt->last_time_checked = Ixl::device_stats::monotonic_time();
 }

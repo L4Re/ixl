@@ -5,6 +5,6 @@ REQUIRES_LIBS = ixylon
 
 TARGET = ixy-pktgen
 
-SRC_C  = ixy-pktgen.c
+SRC_CC = ixy-pktgen.cc
 
 include $(L4DIR)/mk/prog.mk

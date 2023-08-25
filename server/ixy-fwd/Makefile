@@ -5,6 +5,6 @@ REQUIRES_LIBS = ixylon
 
 TARGET = ixy-fwd
 
-SRC_C  = ixy-fwd.c
+SRC_CC = ixy-fwd.cc
 
 include $(L4DIR)/mk/prog.mk

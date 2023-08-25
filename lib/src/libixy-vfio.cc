@@ -47,7 +47,7 @@ void vfio_enable_dma(int device_fd) {
  * @return The event file descriptor.
  */
 int vfio_enable_msi(int device_fd) {
-	info("Enable MSI Interrupts");
+	ixl_info("Enable MSI Interrupts");
 	/*
     char irq_set_buf[IRQ_SET_BUF_LEN];
 	int* fd_ptr;
@@ -77,7 +77,7 @@ int vfio_enable_msi(int device_fd) {
  * @return 0 on success.
  */
 int vfio_disable_msi(int device_fd) {
-	info("Disable MSI Interrupts");
+	ixl_info("Disable MSI Interrupts");
 	/*
     char irq_set_buf[IRQ_SET_BUF_LEN];
 
@@ -100,7 +100,7 @@ int vfio_disable_msi(int device_fd) {
  * @return The event file descriptor.
  */
 int vfio_enable_msix(int device_fd, uint32_t interrupt_vector) {
-	info("Enable MSIX Interrupts");
+	ixl_info("Enable MSIX Interrupts");
 	/*
     char irq_set_buf[MSIX_IRQ_SET_BUF_LEN];
 	struct vfio_irq_set* irq_set;
@@ -137,7 +137,7 @@ int vfio_enable_msix(int device_fd, uint32_t interrupt_vector) {
  * @return 0 on success.
  */
 int vfio_disable_msix(int device_fd) {
-	info("Disable MSIX Interrupts");
+	ixl_info("Disable MSIX Interrupts");
 	/*
     struct vfio_irq_set* irq_set;
 	char irq_set_buf[MSIX_IRQ_SET_BUF_LEN];
@@ -161,7 +161,7 @@ int vfio_disable_msix(int device_fd) {
  * @return The supported interrupt.
  */
 int vfio_setup_interrupt(int device_fd) {
-	info("Setup VFIO Interrupts");
+	ixl_info("Setup VFIO Interrupts");
 
 	// for (int i = VFIO_PCI_MSIX_IRQ_INDEX; i >= 0; i--) {
 	// 	struct vfio_irq_info irq = {.argsz = sizeof(irq), .index = i};
@@ -315,7 +315,7 @@ uint8_t* vfio_map_region(int vfio_fd, int region_index) {
 	}
 	return (uint8_t*) check_err(mmap(NULL, region_info.size, PROT_READ | PROT_WRITE, MAP_SHARED, vfio_fd, region_info.offset), "mmap vfio bar0 resource");
     */
-    return MAP_FAILED;
+    return NULL;
 }
 
 // returns iova (physical address of the DMA memory from device view) on success

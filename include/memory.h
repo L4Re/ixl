@@ -23,9 +23,9 @@ struct pkt_buf {
 	uint8_t data[] __attribute__((aligned(64)));
 };
 
-_Static_assert(sizeof(struct pkt_buf) == 64, "pkt_buf too large");
-_Static_assert(offsetof(struct pkt_buf, data) == 64, "data at unexpected position");
-_Static_assert(offsetof(struct pkt_buf, head_room) + SIZE_PKT_BUF_HEADROOM == offsetof(struct pkt_buf, data), "head room not immediately before data");
+static_assert(sizeof(struct pkt_buf) == 64, "pkt_buf too large");
+static_assert(offsetof(struct pkt_buf, data) == 64, "data at unexpected position");
+static_assert(offsetof(struct pkt_buf, head_room) + SIZE_PKT_BUF_HEADROOM == offsetof(struct pkt_buf, data), "head room not immediately before data");
 
 // everything here contains virtual addresses, the mapping to physical addresses are in the pkt_buf
 struct mempool {

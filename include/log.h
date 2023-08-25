@@ -9,25 +9,25 @@
 #include <ctype.h>
 #include <assert.h>
 
-#ifndef NDEBUG
-#define debug(fmt, ...) do {\
+#ifndef IXL_NDEBUG
+#define ixl_debug(fmt, ...) do {\
 	fprintf(stderr, "[DEBUG] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 } while(0)
 #else
-#define debug(fmt, ...) do {} while(0)
+#define ixl_debug(fmt, ...) do {} while(0)
 #undef assert
 #define assert(expr) (void) (expr)
 #endif
 
-#define info(fmt, ...) do {\
-	fprintf(stdout, "[INFO ] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
+#define ixl_info(fmt, ...) do {\
+    fprintf(stdout, "[INFO ] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 } while(0)
 
-#define warn(fmt, ...) do {\
+#define ixl_warn(fmt, ...) do {\
 	fprintf(stderr, "[WARN ] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 } while(0)
 
-#define error(fmt, ...) do {\
+#define ixl_error(fmt, ...) do {\
 	fprintf(stderr, "[ERROR] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 	abort();\
 } while(0)

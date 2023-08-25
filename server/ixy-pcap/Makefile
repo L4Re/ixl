@@ -5,6 +5,6 @@ REQUIRES_LIBS = ixylon
 
 TARGET = ixy-pcap
 
-SRC_C  = ixy-pcap.c
+SRC_CC = ixy-pcap.cc
 
 include $(L4DIR)/mk/prog.mk

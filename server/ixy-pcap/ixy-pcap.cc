@@ -4,6 +4,8 @@
 
 #include <l4/ixylon/device.h>
 
+using Ixl::Ixl_device;
+
 const int BATCH_SIZE = 32;
 
 // From https://wiki.wireshark.org/Development/LibpcapFileFormat
@@ -30,11 +32,12 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	struct ixy_device* dev = ixy_init(argv[1], 1, 1, 0);
+	Ixl_device* dev = Ixl_device::ixl_init(argv[1], 1, 1, 0);
 
 	FILE* pcap = fopen(argv[2], "wb");
 	if (pcap == NULL) {
-		error("failed to open file %s", argv[2]);
+		ixl_warn("failed to open file %s, falling back to stdout", argv[2]);
+        pcap = stdout;
 	}
 
 	int64_t n_packets = -1;
@@ -58,7 +61,7 @@ int main(int argc, char* argv[]) {
 
 	struct pkt_buf* bufs[BATCH_SIZE];
 	while (n_packets != 0) {
-		uint32_t num_rx = ixy_rx_batch(dev, 0, bufs, BATCH_SIZE);
+		uint32_t num_rx = dev->rx_batch(0, bufs, BATCH_SIZE);
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 

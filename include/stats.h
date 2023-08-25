@@ -6,20 +6,27 @@
 #include <time.h>
 #include "device.h"
 
+namespace Ixl {
+
 struct device_stats {
-	struct ixy_device* device;
+
+    device_stats(Ixl_device *dev);
+
+    static void print_stats(struct device_stats* stats);
+    
+    static void print_stats_diff(struct device_stats* stats_new,
+                                 struct device_stats* stats_old,
+                                 uint64_t nanos_passed);
+
+    static uint64_t monotonic_time();
+
+	Ixl_device *device;
 	size_t rx_pkts;
 	size_t tx_pkts;
 	size_t rx_bytes;
 	size_t tx_bytes;
 };
 
-
-
-void print_stats(struct device_stats* stats);
-void print_stats_diff(struct device_stats* stats_new, struct device_stats* stats_old, uint64_t nanos_passed);
-void stats_init(struct device_stats* stats, struct ixy_device* dev);
-
-uint64_t monotonic_time();
+}
 
 #endif //IXY_STATS_H

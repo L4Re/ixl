@@ -27,7 +27,7 @@ static uintptr_t virt_to_phys(void* virt) {
 	check_err(read(fd, &phy, sizeof(phy)), "translating address");
 	close(fd);
 	if (!phy) {
-		error("failed to translate virtual address %p to physical address", virt);
+		ixl_error("failed to translate virtual address %p to physical address", virt);
 	}
 	// bits 0-54 are the page number
 	return (phy & 0x7fffffffffffffULL) * pagesize + ((uintptr_t) virt) % pagesize;
@@ -42,7 +42,7 @@ static uint32_t huge_pg_id;
 struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 	if (VFIO_CONTAINER_FILE_DESCRIPTOR != -1) {
 		// VFIO == -1 means that there is no VFIO container set, i.e. VFIO / IOMMU is not activated
-		debug("allocating dma memory via VFIO");
+		ixl_debug("allocating dma memory via VFIO");
 	
         // TODO: Originally, this memory was mapped using MAP_HUGETLB and
         // MAP_HUGE_2MB
@@ -55,7 +55,7 @@ struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 			.phy = iova
 		};
 	} else {
-		debug("allocating dma memory via huge page");
+		ixl_debug("allocating dma memory via huge page");
 		// round up to multiples of 2 MB if necessary, this is the wasteful part
 		// this could be fixed by co-locating allocations on the same page until a request would be too large
 		// when fixing this: make sure to align on 128 byte boundaries (82599 dma requirement)
@@ -64,7 +64,7 @@ struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 		}
 		if (require_contiguous && size > HUGE_PAGE_SIZE) {
 			// this is the place to implement larger contiguous physical mappings if that's ever needed
-			error("could not map physically contiguous memory");
+			ixl_error("could not map physically contiguous memory");
 		}
 		// unique filename, C11 stdatomic.h requires a too recent gcc, we want to support gcc 4.8
 		uint32_t id = __sync_fetch_and_add(&huge_pg_id, 1);
@@ -97,7 +97,7 @@ struct mempool* memory_allocate_mempool(uint32_t num_entries, uint32_t entry_siz
 	// require entries that neatly fit into the page size, this makes the memory pool much easier
 	// otherwise our base_addr + index * size formula would be wrong because we can't cross a page-boundary
 	if ((VFIO_CONTAINER_FILE_DESCRIPTOR == -1) && HUGE_PAGE_SIZE % entry_size) {
-		error("entry size must be a divisor of the huge page size (%d)", HUGE_PAGE_SIZE);
+		ixl_error("entry size must be a divisor of the huge page size (%d)", HUGE_PAGE_SIZE);
 	}
 	struct mempool* mempool = (struct mempool*) malloc(sizeof(struct mempool) + num_entries * sizeof(uint32_t));
 	struct dma_memory mem = memory_allocate_dma(num_entries * entry_size, false);
@@ -125,7 +125,7 @@ struct mempool* memory_allocate_mempool(uint32_t num_entries, uint32_t entry_siz
 
 uint32_t pkt_buf_alloc_batch(struct mempool* mempool, struct pkt_buf* bufs[], uint32_t num_bufs) {
 	if (mempool->free_stack_top < num_bufs) {
-		warn("memory pool %p only has %d free bufs, requested %d", mempool, mempool->free_stack_top, num_bufs);
+		ixl_warn("memory pool %p only has %d free bufs, requested %d", mempool, mempool->free_stack_top, num_bufs);
 		num_bufs = mempool->free_stack_top;
 	}
 	for (uint32_t i = 0; i < num_bufs; i++) {

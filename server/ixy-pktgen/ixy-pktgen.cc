@@ -5,6 +5,9 @@
 #include <l4/ixylon/memory.h>
 #include <l4/ixylon/device.h>
 
+using Ixl::Ixl_device;
+using Ixl::device_stats;
+
 // number of packets sent simultaneously to our driver
 static const uint32_t BATCH_SIZE = 64;
 
@@ -32,7 +35,7 @@ static const uint8_t pkt_data[] = {
 
 // calculate a IP/TCP/UDP checksum
 static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
-	if (len % 1) error("odd-sized checksums NYI"); // we don't need that
+	if (len % 1) ixl_error("odd-sized checksums NYI"); // we don't need that
 	uint32_t cs = 0;
 	for (uint32_t i = 0; i < len / 2; i++) {
 		cs += ((uint16_t*)data)[i];
@@ -70,14 +73,13 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	struct ixy_device* dev = ixy_init(argv[1], 1, 1, 0);
+	Ixl_device* dev = Ixl_device::ixl_init(argv[1], 1, 1, 0);
 	struct mempool* mempool = init_mempool();
 
-	uint64_t last_stats_printed = monotonic_time();
+	uint64_t last_stats_printed = device_stats::monotonic_time();
 	uint64_t counter = 0;
-	struct device_stats stats_old, stats;
-	stats_init(&stats, dev);
-	stats_init(&stats_old, dev);
+	struct device_stats stats(dev);
+	struct device_stats stats_old(dev);
 	uint32_t seq_num = 0;
 
 	// array of bufs sent out in a batch
@@ -93,15 +95,15 @@ int main(int argc, char* argv[]) {
 			*(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;
 		}
 		// the packets could be modified here to generate multiple flows
-		ixy_tx_batch_busy_wait(dev, 0, bufs, BATCH_SIZE);
+		dev->tx_batch_busy_wait(0, bufs, BATCH_SIZE);
 
 		// don't check time for every packet, this yields +10% performance :)
 		if ((counter++ & 0xFFF) == 0) {
-			uint64_t time = monotonic_time();
+			uint64_t time = device_stats::monotonic_time();
 			if (time - last_stats_printed > 1000 * 1000 * 1000) {
 				// every second
-				ixy_read_stats(dev, &stats);
-				print_stats_diff(&stats, &stats_old, time - last_stats_printed);
+				dev->read_stats(&stats);
+				device_stats::print_stats_diff(&stats, &stats_old, time - last_stats_printed);
 				stats_old = stats;
 				last_stats_printed = time;
 			}

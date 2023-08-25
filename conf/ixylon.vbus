@@ -1,0 +1,14 @@
+-- io configuration file that adds all PCI ethernet devices to a single vbus.
+--
+-- This file is mostly intended for testing purposes of the ixylon driver.
+
+Io.add_vbusses
+{
+    ethdevs = Io.Vi.System_bus(function ()
+        -- Just a preliminary number
+        Property.num_msis = 4;
+        PCI0 = Io.Vi.PCI_bus(function ()
+            pci_hd = wrap(Io.system_bus():match("PCI/network"));
+        end);
+    end);
+};
