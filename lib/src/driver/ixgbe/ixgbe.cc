@@ -11,7 +11,6 @@
 #include <l4/ixylon/stats.h>
 
 #include "driver/ixgbe/ixgbe.h"
-#include "pci.h"
 #include "libixy-vfio.h"
 
 using namespace Ixl;
@@ -407,6 +406,7 @@ void Ixgbe_device::reset_and_init(void) {
 /**
  * Initializes and returns the IXGBE device.
  * @param pci_addr The PCI address of the device.
+ * @param pci_dev PCI device handle received from this task's vbus
  * @param rx_queues The number of receiver queues.
  * @param tx_queues The number of transmitter queues.
  * @param interrupt_timeout The interrupt timeout in milliseconds
@@ -415,6 +415,7 @@ void Ixgbe_device::reset_and_init(void) {
  * @return The initialized IXGBE device.
  */
 Ixgbe_device* Ixgbe_device::ixgbe_init(const char* pci_addr,
+                                       L4vbus::Pci_dev&& pci_dev,
                                        uint16_t rx_queues,
                                        uint16_t tx_queues,
                                        int irq_timeout) {
@@ -426,27 +427,11 @@ Ixgbe_device* Ixgbe_device::ixgbe_init(const char* pci_addr,
 	}
 
 	// Allocate memory for the ixgbe device that will be returned
-	Ixgbe_device *dev = new Ixgbe_device(pci_addr,
+	Ixgbe_device *dev = new Ixgbe_device(pci_addr, std::move(pci_dev),
                                          rx_queues, tx_queues, 
                                          (irq_timeout != 0), 
                                          0x028, // itr_rate (10ys => 97600 INT/s)
                                          irq_timeout);
-
-	// Check if we want the VFIO stuff
-	// This is done by checking if the device is in an IOMMU group.
-	/*
-    char path[PATH_MAX];
-	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/iommu_group", pci_addr);
-	struct stat buffer;
-	dev->ixy.vfio = stat(path, &buffer) == 0;
-	if (dev->ixy.vfio) {
-		// initialize the IOMMU for this device
-		dev->ixy.vfio_fd = vfio_init(pci_addr);
-		if (dev->ixy.vfio_fd < 0) {
-			ixl_error("could not initialize the IOMMU for device %s", pci_addr);
-		}
-	}
-    */
 
 	dev->reset_and_init();
 	return dev;

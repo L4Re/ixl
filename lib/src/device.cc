@@ -37,7 +37,7 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
     } else {
         // Our best guess is to try ixgbe
         ixl_info("Trying ixgbe...");
-        return Ixgbe_device::ixgbe_init(pci_addr, rx_queues,
+        return Ixgbe_device::ixgbe_init(pci_addr, std::move(dev), rx_queues,
                                         tx_queues, irq_timeout);
     }
 }

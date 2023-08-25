@@ -48,6 +48,7 @@ public:
     /**
      * Initializes and returns the IXGBE device.
      * @param pci_addr The PCI address of the device.
+     * @param pci_dev PCI device handle received from this task's vbus
      * @param rx_queues The number of receiver queues.
      * @param tx_queues The number of transmitter queues.
      * @param interrupt_timeout The interrupt timeout in milliseconds
@@ -56,6 +57,7 @@ public:
      * @return The initialized IXGBE device.
      */
     static Ixgbe_device* ixgbe_init(const char *pci_addr,
+                                    L4vbus::Pci_dev&& pci_dev,
                                     uint16_t rx_queues,
                                     uint16_t tx_queues,
                                     int irq_timeout);
@@ -90,7 +92,7 @@ private:
 
 
     /***                           Constructor                            ***/
-    Ixgbe_device(const char* pci_address,
+    Ixgbe_device(const char* pci_address, L4vbus::Pci_dev&& dev,
                  uint16_t rx_qs, uint16_t tx_qs, bool irq_enabled,
                  uint32_t itr_rate, int irq_timeout_ms) {
         num_rx_queues = rx_qs;
@@ -101,6 +103,7 @@ private:
         interrupts.timeout_ms         = irq_timeout_ms;
     
         pci_addr = strdup(pci_address);
+        pci_dev  = dev;
 
         // Temporary hack to indicate absence of IRQ implementation
         if (irq_enabled)
@@ -108,7 +111,7 @@ private:
 
         // Map BAR0 region
         ixl_debug("mapping BAR0 region via pci file...");
-        addr = pci_map_resource(pci_addr);
+        addr = pci_map_bar0(pci_dev);
 
         rx_queues = calloc(rx_qs, sizeof(struct ixgbe_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
         tx_queues = calloc(tx_qs, sizeof(struct ixgbe_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
@@ -230,6 +233,9 @@ private:
     uint8_t* addr;
     void*    rx_queues;
     void*    tx_queues;
+
+    // Underlying vbus device handed over by L4
+    L4vbus::Pci_dev pci_dev;
 };
 
 }

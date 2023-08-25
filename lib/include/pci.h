@@ -5,7 +5,7 @@
 
 #include <l4/vbus/vbus_pci>
 
-struct ixy_device;
+#include <l4/ixylon/device.h>
 
 /****************************************************************************
  *                                                                          *
@@ -14,10 +14,34 @@ struct ixy_device;
  ****************************************************************************/
 
 
-void remove_driver(const char* pci_addr);
-void enable_dma(const char* pci_addr);
-uint8_t* pci_map_resource(const char* bus_id);
+void enable_dma(L4vbus::Pci_dev& dev);
+
+/**
+ * Maps the I/O memory of the first base address register (BAR0) into the
+ * address space of this task.
+ *
+ * @param dev PCI device for that the mapping shall be done.
+ *
+ * @return The virtual address at which the contents of BAR 0 can be accessed.
+ */
+uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev);
+
 int pci_open_resource(const char* pci_addr, const char* resource, int flags);
+
+/**
+ * Computes the size of the I/O memory that can be accessed by mapping BAR0
+ * of the device dev.
+ *
+ * See also https://wiki.osdev.org/PCI#Base_Address_Registers
+ */
+l4_uint64_t get_bar0_size(L4vbus::Pci_dev& dev);
+
+/**
+ * Gets the physical address of BAR0 of the PCI device dev.
+ *
+ * See also: https://wiki.osdev.org/PCI#Base_Address_Registers
+ */
+l4_uint64_t get_bar0_addr(L4vbus::Pci_dev& dev);
 
 /**
  *
