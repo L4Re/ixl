@@ -7,7 +7,7 @@
 #include <l4/ixylon/memory.h>
 
 #include "ixgbe_type.h"
-#include "../pci.h"
+#include "../../pci.h"
 
 namespace Ixl {
 
@@ -102,27 +102,13 @@ private:
     
         pci_addr = strdup(pci_address);
 
-        // TODO: Purge the vfio stuff.
-        if (!vfio && irq_timeout_ms != 0) {
-            ixl_warn("Interrupts requested but VFIO not available: "
-                     "Disabling Interrupts!");
-            interrupts.interrupts_enabled = false;  
-        }
+        // Temporary hack to indicate absence of IRQ implementation
+        if (irq_enabled)
+            ixl_error("IRQ feature currently not implemented.");
 
-        // TODO: Purge the vfio stuff
         // Map BAR0 region
-        if (vfio) {
-            ixl_error("VFIO not supported on L4");
-            /*
-            debug("mapping BAR0 region via VFIO...");
-            dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR0_REGION_INDEX);
-            // initialize interrupts for this device
-            setup_interrupts(dev);
-            */
-        } else {
-            ixl_debug("mapping BAR0 region via pci file...");
-            addr = pci_map_resource(pci_addr);
-        }
+        ixl_debug("mapping BAR0 region via pci file...");
+        addr = pci_map_resource(pci_addr);
 
         rx_queues = calloc(rx_qs, sizeof(struct ixgbe_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
         tx_queues = calloc(tx_qs, sizeof(struct ixgbe_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);

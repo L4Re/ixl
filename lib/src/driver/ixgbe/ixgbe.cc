@@ -10,7 +10,7 @@
 #include <l4/ixylon/interrupts.h>
 #include <l4/ixylon/stats.h>
 
-#include "driver/ixgbe.h"
+#include "driver/ixgbe/ixgbe.h"
 #include "pci.h"
 #include "libixy-vfio.h"
 

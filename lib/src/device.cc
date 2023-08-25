@@ -3,7 +3,7 @@
 #include <l4/vbus/vbus_pci>
 
 #include <l4/ixylon/device.h>
-#include "driver/ixgbe.h"
+#include "driver/ixgbe/ixgbe.h"
 // #include "driver/virtio.h"
 #include "pci.h"
 

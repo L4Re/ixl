@@ -10,7 +10,7 @@ SRC_CC = pci.cc \
 		 interrupts.cc \
 		 libixy-vfio.cc \
 		 device.cc \
-		 driver/ixgbe.cc
+		 driver/ixgbe/ixgbe.cc
 
 # Include package-private header files
 PRIVATE_INCDIR = $(PKGDIR)/lib/include

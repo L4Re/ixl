@@ -77,6 +77,7 @@ public:
                                 uint16_t tx_queues, int irq_timeout);
 
 protected:
+    // TODO purge vfio stuff
 	const char* pci_addr;
 	uint16_t    num_rx_queues;
 	uint16_t    num_tx_queues;
