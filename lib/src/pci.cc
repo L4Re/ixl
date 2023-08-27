@@ -97,9 +97,9 @@ l4_uint64_t get_bar0_addr(L4vbus::Pci_dev& dev) {
 
 void enable_dma(L4vbus::Pci_dev& dev) {
     l4_uint32_t cmd_reg = 0;                  // Value of PCI command register
-	
+    
     // write to the command register (offset 4) in the PCIe config space
-	// bit 2 is "bus master enable", see PCIe 3.0 specification section 7.5.1.1
+    // bit 2 is "bus master enable", see PCIe 3.0 specification section 7.5.1.1
     L4Re::chksys(dev.cfg_read(0x4, &cmd_reg, 16));
     cmd_reg |= 1 << 2;
     L4Re::chksys(dev.cfg_write(0x4, cmd_reg, 16));
@@ -110,7 +110,7 @@ uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev) {
     l4_uint64_t iomem_size;       // Size of memory accessible through BAR0
     l4_uint64_t bar_addr;         // Physical address contained in BAR0
 
-	enable_dma(dev);
+    enable_dma(dev);
     
     // Obtain information about the device (e.g. no. of resources & their types)
     l4vbus_device_t devinfo;
@@ -155,16 +155,16 @@ uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev) {
         L4Re::Rm::F::Search_addr | L4Re::Rm::F::Cache_uncached | L4Re::Rm::F::RW,
         L4::Ipc::make_cap_rw(ds), bar_addr, L4_PAGESHIFT));
 
-    ixl_debug("Mapped bar0 to address %p", iomem_addr);
-	return (uint8_t *) iomem_addr;
+    ixl_debug("Mapped bar0 to address %lx", iomem_addr);
+    return (uint8_t *) iomem_addr;
 }
 
 int pci_open_resource(const char* pci_addr, const char* resource, int flags) {
-	char path[PATH_MAX];
-	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/%s", pci_addr, resource);
-	ixl_debug("Opening PCI resource at %s", path);
-	int fd = check_err(open(path, flags), "open pci resource");
-	return fd;
+    char path[PATH_MAX];
+    snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/%s", pci_addr, resource);
+    ixl_debug("Opening PCI resource at %s", path);
+    int fd = check_err(open(path, flags), "open pci resource");
+    return fd;
 }
 
 /* Acquires a PCI devices at a certain index on the "vbus" capability.      */

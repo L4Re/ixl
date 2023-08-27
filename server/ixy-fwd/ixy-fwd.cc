@@ -7,7 +7,7 @@
 const int BATCH_SIZE = 32;
 
 static void forward(Ixl::Ixl_device* rx_dev, uint16_t rx_queue, Ixl::Ixl_device* tx_dev, uint16_t tx_queue) {
-	struct pkt_buf* bufs[BATCH_SIZE];
+	struct Ixl::pkt_buf* bufs[BATCH_SIZE];
 	uint32_t num_rx = rx_dev->rx_batch(rx_queue, bufs, BATCH_SIZE);
 	if (num_rx > 0) {
 		// touch all packets, otherwise it's a completely unrealistic workload if the packet just stays in L3
@@ -18,7 +18,7 @@ static void forward(Ixl::Ixl_device* rx_dev, uint16_t rx_queue, Ixl::Ixl_device*
 		// there are two ways to handle the case that packets are not being sent out:
 		// either wait on tx or drop them; in this case it's better to drop them, otherwise we accumulate latency
 		for (uint32_t i = num_tx; i < num_rx; i++) {
-			pkt_buf_free(bufs[i]);
+			Ixl::pkt_buf_free(bufs[i]);
 		}
 	}
 }

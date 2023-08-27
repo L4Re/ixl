@@ -106,12 +106,17 @@ private:
         pci_dev  = dev;
 
         // Temporary hack to indicate absence of IRQ implementation
-        if (irq_enabled)
+        if (irq_enabled) {
             ixl_error("IRQ feature currently not implemented.");
+            // setup_interrupts();
+        }
 
         // Map BAR0 region
-        ixl_debug("mapping BAR0 region via pci file...");
+        ixl_debug("Mapping BAR0 I/O memory...");
         addr = pci_map_bar0(pci_dev);
+
+        // Create a DMA space for this device
+        create_dma_space();
 
         rx_queues = calloc(rx_qs, sizeof(struct ixgbe_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
         tx_queues = calloc(tx_qs, sizeof(struct ixgbe_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
@@ -121,7 +126,6 @@ private:
 
     /**
      * Set the IVAR registers, mapping interrupt causes to vectors
-     * @param dev pointer to device
      * @param direction 0 for Rx, 1 for Tx
      * @param queue queue to map the corresponding interrupt to
      * @param msix_vector the vector to map to the corresponding queue
@@ -138,7 +142,6 @@ private:
 
     /**
      * Clear all interrupt masks for all queues.
-     * @param dev The device.
      */
     void clear_interrupts(void) {
         // Clear interrupt mask
@@ -148,7 +151,6 @@ private:
 
     /**
      * Clear interrupt for queue.
-     * @param dev The device.
      * @param queue_id The ID of the queue to clear.
      */
     void clear_interrupt(uint16_t queue_id) {
@@ -159,7 +161,6 @@ private:
 
     /**
      * Disable all interrupts for all queues.
-     * @param dev The device.
      */
     void disable_interrupts(void) {
         // Clear interrupt mask to stop from interrupts being generated
@@ -169,7 +170,6 @@ private:
 
     /**
      * Disable interrupt for queue
-     * @param dev
      * @param queue_id The ID of the queue to disable.
      */
     void disable_interrupt(uint16_t queue_id) {
@@ -233,9 +233,6 @@ private:
     uint8_t* addr;
     void*    rx_queues;
     void*    tx_queues;
-
-    // Underlying vbus device handed over by L4
-    L4vbus::Pci_dev pci_dev;
 };
 
 }

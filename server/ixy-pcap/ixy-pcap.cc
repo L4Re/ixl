@@ -3,6 +3,7 @@
 #include <sys/time.h>
 
 #include <l4/ixylon/device.h>
+#include <l4/ixylon/memory.h>
 
 using Ixl::Ixl_device;
 
@@ -20,8 +21,8 @@ typedef struct pcap_hdr_s {
 } pcap_hdr_t;
 
 typedef struct pcaprec_hdr_s {
-	uint32_t ts_sec;        /* timestamp seconds */
-	uint32_t ts_usec;       /* timestamp microseconds */
+	int64_t ts_sec;         /* timestamp seconds */
+	int64_t ts_usec;        /* timestamp microseconds */
 	uint32_t incl_len;      /* number of octets of packet saved in file */
 	uint32_t orig_len;      /* actual length of packet */
 } pcaprec_hdr_t;
@@ -59,7 +60,7 @@ int main(int argc, char* argv[]) {
 	};
 	fwrite(&header, sizeof(header), 1, pcap);
 
-	struct pkt_buf* bufs[BATCH_SIZE];
+	struct Ixl::pkt_buf* bufs[BATCH_SIZE];
 	while (n_packets != 0) {
 		uint32_t num_rx = dev->rx_batch(0, bufs, BATCH_SIZE);
 		struct timeval tv;
@@ -76,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 			fwrite(bufs[i]->data, bufs[i]->size, 1, pcap);
 
-			pkt_buf_free(bufs[i]);
+			Ixl::pkt_buf_free(bufs[i]);
 			// n_packets == -1 indicates unbounded capture
 			if (n_packets > 0) {
 				n_packets--;

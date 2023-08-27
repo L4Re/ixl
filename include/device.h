@@ -6,8 +6,10 @@
 
 #include <string>
 
+#include <l4/re/util/shared_cap>
+#include <l4/vbus/vbus_pci>
+
 #include "log.h"
-#include "memory.h"
 #include "interrupts.h"
 
 #define MAX_QUEUES 64
@@ -73,10 +75,27 @@ public:
         return pci_addr;
     }
 
+    L4Re::Util::Shared_cap<L4Re::Dma_space> get_dma_space(void) {
+        return dma_cap;
+    }
+
     static Ixl_device* ixl_init(const char* pci_addr, uint16_t rx_queues,
                                 uint16_t tx_queues, int irq_timeout);
 
 protected:
+    /*                             Functions                                */
+    
+    /**
+     * Create a DMA space for this device. The DMA space is later on needed
+     * when making host memory accessible to the I/O device.
+     *
+     * Throws an exception if the underlying PCI device does not have any
+     * DMA resources.
+     */
+    void create_dma_space(void);
+
+    /*                          Member variables                            */
+
     // TODO purge vfio stuff
 	const char* pci_addr;
 	uint16_t    num_rx_queues;
@@ -84,6 +103,13 @@ protected:
 	bool        vfio;
 	int         vfio_fd; // device fd
 	struct      interrupts interrupts;
+
+    // Underlying vbus device handed over by L4
+    L4vbus::Pci_dev pci_dev;
+
+    // DMA space created for this device (needed to make standard dataspaces
+    // accessible for I/O devices)
+    L4Re::Util::Shared_cap<L4Re::Dma_space> dma_cap;
 };
 
 // getters/setters for PCIe memory mapped registers

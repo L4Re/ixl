@@ -46,14 +46,14 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
 	return ~((uint16_t) cs);
 }
 
-static struct mempool* init_mempool() {
+static struct Ixl::mempool* init_mempool(Ixl_device& dev) {
 	const int NUM_BUFS = 2048;
-	struct mempool* mempool = memory_allocate_mempool(NUM_BUFS, 0);
+	struct Ixl::mempool* mempool = Ixl::memory_allocate_mempool(dev, NUM_BUFS, 0);
 	// pre-fill all our packet buffers with some templates that can be modified later
 	// we have to do it like this because sending is async in the hardware; we cannot re-use a buffer immediately
-	struct pkt_buf* bufs[NUM_BUFS];
+	struct Ixl::pkt_buf* bufs[NUM_BUFS];
 	for (int buf_id = 0; buf_id < NUM_BUFS; buf_id++) {
-		struct pkt_buf* buf = pkt_buf_alloc(mempool);
+		struct Ixl::pkt_buf* buf = Ixl::pkt_buf_alloc(mempool);
 		buf->size = PKT_SIZE;
 		memcpy(buf->data, pkt_data, sizeof(pkt_data));
 		*(uint16_t*) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
@@ -61,7 +61,7 @@ static struct mempool* init_mempool() {
 	}
 	// return them all to the mempool, all future allocations will return bufs with the data set above
 	for (int buf_id = 0; buf_id < NUM_BUFS; buf_id++) {
-		pkt_buf_free(bufs[buf_id]);
+		Ixl::pkt_buf_free(bufs[buf_id]);
 	}
 
 	return mempool;
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	Ixl_device* dev = Ixl_device::ixl_init(argv[1], 1, 1, 0);
-	struct mempool* mempool = init_mempool();
+	struct Ixl::mempool* mempool = init_mempool(*dev);
 
 	uint64_t last_stats_printed = device_stats::monotonic_time();
 	uint64_t counter = 0;
@@ -83,13 +83,13 @@ int main(int argc, char* argv[]) {
 	uint32_t seq_num = 0;
 
 	// array of bufs sent out in a batch
-	struct pkt_buf* bufs[BATCH_SIZE];
+	struct Ixl::pkt_buf* bufs[BATCH_SIZE];
 
 	// tx loop
 	while (true) {
 		// we cannot immediately recycle packets, we need to allocate new packets every time
 		// the old packets might still be used by the NIC: tx is async
-		pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
+		Ixl::pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
 		for (uint32_t i = 0; i < BATCH_SIZE; i++) {
 			// packets can be modified here, make sure to update the checksum when changing the IP header
 			*(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;

@@ -187,7 +187,7 @@ void Ixgbe_device::start_rx_queue(int queue_id) {
 	// this has to be fixed if jumbo frames are to be supported
 	// mempool should be >= the number of rx and tx descriptors for a forwarding application
 	int mempool_size = NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES;
-	queue->mempool = memory_allocate_mempool(mempool_size < MIN_MEMPOOL_ENTRIES ? MIN_MEMPOOL_ENTRIES : mempool_size, PKT_BUF_ENTRY_SIZE);
+	queue->mempool = memory_allocate_mempool(*this, mempool_size < MIN_MEMPOOL_ENTRIES ? MIN_MEMPOOL_ENTRIES : mempool_size, PKT_BUF_ENTRY_SIZE);
 	if (queue->num_entries & (queue->num_entries - 1)) {
 		ixl_error("number of queue entries must be a power of 2");
 	}
@@ -254,14 +254,14 @@ void Ixgbe_device::init_rx(void) {
 		set_flags32(addr, IXGBE_SRRCTL(i), IXGBE_SRRCTL_DROP_EN);
 		// setup descriptor ring, see section 7.1.9
 		uint32_t ring_size_bytes = NUM_RX_QUEUE_ENTRIES * sizeof(union ixgbe_adv_rx_desc);
-		struct dma_memory mem = memory_allocate_dma(ring_size_bytes, true);
+		struct dma_memory mem = memory_allocate_dma(*this, ring_size_bytes);
 		// neat trick from Snabb: initialize to 0xFF to prevent rogue memory accesses on premature DMA activation
 		memset(mem.virt, -1, ring_size_bytes);
 		// tell the device where it can write to (its iova, so its view)
 		set_reg32(addr, IXGBE_RDBAL(i), (uint32_t) (mem.phy & 0xFFFFFFFFull));
 		set_reg32(addr, IXGBE_RDBAH(i), (uint32_t) (mem.phy >> 32));
 		set_reg32(addr, IXGBE_RDLEN(i), ring_size_bytes);
-		ixl_debug("rx ring %d phy addr:  0x%012lX", i, mem.phy);
+		ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
 		ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
 		// set ring to empty at start
 		set_reg32(addr, IXGBE_RDH(i), 0);
@@ -306,13 +306,13 @@ void Ixgbe_device::init_tx(void) {
 
 		// setup descriptor ring, see section 7.1.9
 		uint32_t ring_size_bytes = NUM_TX_QUEUE_ENTRIES * sizeof(union ixgbe_adv_tx_desc);
-		struct dma_memory mem = memory_allocate_dma(ring_size_bytes, true);
+		struct dma_memory mem = memory_allocate_dma(*this, ring_size_bytes);
 		memset(mem.virt, -1, ring_size_bytes);
 		// tell the device where it can write to (its iova, so its view)
 		set_reg32(addr, IXGBE_TDBAL(i), (uint32_t) (mem.phy & 0xFFFFFFFFull));
 		set_reg32(addr, IXGBE_TDBAH(i), (uint32_t) (mem.phy >> 32));
 		set_reg32(addr, IXGBE_TDLEN(i), ring_size_bytes);
-		ixl_debug("tx ring %d phy addr:  0x%012lX", i, mem.phy);
+		ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
 		ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
 
 		// descriptor writeback magic values, important to get good performance and low PCIe overhead

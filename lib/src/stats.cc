@@ -14,7 +14,7 @@ device_stats::device_stats(Ixl_device *dev) : device(dev) {
     device->read_stats(NULL);
 }
 
-void print_stats(struct device_stats* stats) {
+void device_stats::print_stats(struct device_stats* stats) {
 	printf("[%s] RX: %zu bytes %zu packets\n", stats->device->get_pci_addr(),
            stats->rx_bytes, stats->rx_pkts);
 	printf("[%s] TX: %zu bytes %zu packets\n", stats->device->get_pci_addr(),
