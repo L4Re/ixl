@@ -10,6 +10,7 @@ SRC_CC = pci.cc \
 		 interrupts.cc \
 		 libixy-vfio.cc \
 		 device.cc \
+		 driver/e1000/e1000.cc \
 		 driver/ixgbe/ixgbe.cc
 
 # Include package-private header files

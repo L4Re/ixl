@@ -3,6 +3,7 @@
 
 #include <l4/ixylon/device.h>
 
+#include "driver/e1000/e1000.h"
 #include "driver/ixgbe/ixgbe.h"
 // #include "driver/virtio.h"
 #include "pci.h"
@@ -91,6 +92,12 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
         // Intel
         case 0x8086:
             switch (device_id) {
+                case 0x100e:
+                    ixl_info("Trying e1000...");
+                    return E1000_device::e1000_init(pci_addr, std::move(dev),
+                                                    rx_queues, tx_queues,
+                                                    irq_timeout);
+                    break;
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");
                     return Ixgbe_device::ixgbe_init(pci_addr, std::move(dev),
@@ -105,7 +112,8 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
             }
             break;
         default:
-            ixl_error("Unknown vendor %x. No suitable driver found.");
+            ixl_error("Unknown vendor %x. No suitable driver found.",
+                      vendor_id);
             break;
     }
 }
