@@ -7,4 +7,6 @@ See also the LICENSE file in this directory.
 
 ### TODOs
 
+* Re-enable interrupts support (probably only meaningful after looking at the
+  higher layers of the network stack).
 * Re-enable Virtio driver.

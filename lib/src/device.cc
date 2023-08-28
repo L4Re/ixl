@@ -72,14 +72,40 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
     check_err(dev.cfg_read(0, &vendor_id, 16), "Failed to read PCI vendor ID");
     check_err(dev.cfg_read(2, &device_id, 16), "Failed to read PCI device ID");
 
-    ixl_debug("Vendor ID is %x, Device ID is %x", vendor_id, device_id);
-    if (vendor_id == 0x1af4 && device_id >= 0x1000) {
-        ixl_error("Virtio driver is currently broken. Aborting...");
-        // return virtio_init(pci_addr, rx_queues, tx_queues);
-    } else {
-        // Our best guess is to try ixgbe
-        ixl_info("Trying ixgbe...");
-        return Ixgbe_device::ixgbe_init(pci_addr, std::move(dev), rx_queues,
-                                        tx_queues, irq_timeout);
+    // Choose driver according to vendor / device ID combination
+    // For now, we will exclude all unknown devices by default, even though a 
+    // particular driver might work. With more time and testing, we can add
+    // more supported devices.
+    switch (vendor_id) {
+        // Virtio
+        case 0x1af4:
+            if (device_id >= 1000) {
+                ixl_error("Virtio driver is currently broken. Aborting...");
+                // return virtio_init(pci_addr, rx_queues, tx_queues);
+            }
+            else {
+                ixl_error("Unsupported device %x of vendor %x. "
+                          "No suitable driver found.", device_id, vendor_id);
+            }
+            break;
+        // Intel
+        case 0x8086:
+            switch (device_id) {
+                case IXGBE_DEV_ID_82598:
+                    ixl_info("Trying ixgbe...");
+                    return Ixgbe_device::ixgbe_init(pci_addr, std::move(dev),
+                                                    rx_queues, tx_queues,
+                                                    irq_timeout);
+                    break;
+                default:
+                    ixl_error("Unsupported device %x of vendor %x. "
+                              "No suitable driver found.", device_id,
+                              vendor_id);
+                break;
+            }
+            break;
+        default:
+            ixl_error("Unknown vendor %x. No suitable driver found.");
+            break;
     }
 }
