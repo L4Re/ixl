@@ -38,6 +38,10 @@ struct __attribute__((__packed__)) mac_address {
 	(type*)((char*)__mptr - offsetof(type, member));\
 })
 
+// advance index with wrap-around
+// this line is the reason why we require a power of two for the queue size
+#define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1)) 
+
 /**
  * General abstraction for a device managed by an Ixylon driver.
  */

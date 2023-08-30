@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <l4/re/util/unique_cap>
+#include <l4/re/util/shared_cap>
 #include <l4/re/dma_space>
 
 #include <l4/ixylon/device.h>
@@ -33,7 +33,7 @@ static_assert(offsetof(struct pkt_buf, data) == 64, "data at unexpected position
 static_assert(offsetof(struct pkt_buf, head_room) + SIZE_PKT_BUF_HEADROOM == offsetof(struct pkt_buf, data), "head room not immediately before data");
 
 struct dma_memory {
-    L4Re::Util::Unique_cap<L4Re::Dataspace> mem_cap;
+    L4Re::Util::Shared_cap<L4Re::Dataspace> mem_cap;
 
     void* virt;
     L4Re::Dma_space::Dma_addr phy;

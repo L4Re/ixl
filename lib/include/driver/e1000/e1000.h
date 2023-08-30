@@ -13,6 +13,7 @@
 
 #include <l4/ixylon/memory.h>
 
+#include "e1000_type.h"
 #include "../../pci.h"
 
 namespace Ixl {
@@ -41,7 +42,10 @@ public:
     static const int PKT_BUF_ENTRY_SIZE  = 2048;
     static const int MIN_MEMPOOL_ENTRIES = 4096;
 
-    static const int TX_CLEAN_BATCH = 32;
+    static const int TX_CLEAN_BATCH      = 32;
+
+    // Maximum time span to wait for an EEPROM operation in milliseconds
+    static const int EEPROM_MAX_WAIT_MS  = 100;
 
     // TODO: Unused for now, reactivate later on.
     static const uint64_t INTERRUPT_INITIAL_INTERVAL = 1000 * 1000 * 1000;
@@ -86,8 +90,16 @@ public:
 private:
     // allocated for each rx queue, keeps state for the receive function
     struct e1000_rx_queue {
-        volatile union ixgbe_adv_rx_desc* descriptors;
+        // DMA'able memory from that the individual descriptors are allocated
+        struct dma_memory descr_mem;
+
+        // Array of descriptors backed by descr_mem
+        volatile struct e1000_rx_desc* descriptors;
+        
+        // DMA'able memory for storing incoming packets
         struct mempool* mempool;
+        
+        // No. of descriptors in the queue
         uint16_t num_entries;
         // position we are reading from
         uint16_t rx_index;
@@ -97,7 +109,13 @@ private:
 
     // allocated for each tx queue, keeps state for the transmit function
     struct e1000_tx_queue {
-        volatile union ixgbe_adv_tx_desc* descriptors;
+        // DMA'able memory from that the individual descriptors are allocated
+        struct dma_memory descr_mem;
+
+        // Array of descriptors backed by descr_mem
+        volatile struct e1000_tx_desc* descriptors;
+        
+        // No. of descriptors in the queue
         uint16_t num_entries;
         // position to clean up descriptors that where sent out by the nic
         uint16_t clean_index;
@@ -147,6 +165,40 @@ private:
     }
 
     /***                           Functions                              ***/
+    
+    /**
+     *
+     * Read <word_cnt> number of 16-Bit words from the NIC's EEPROM, starting
+     * at address <addr>. Note that addressing in the EEPROM is done with an
+     * increment of 2 Bytes. <buf> shall point to an array of uint16_t with 
+     * a capacity of at least <word_cnt> elements.
+     *
+     * @param saddr Starting address to read from the NIC's EEPROM.
+     * @param word_cnt Number of 2-Byte words to read.
+     * @param buf Buffer for storing the returned data.
+     *
+     * @return 0 on success, 1 otherwise.
+     */
+    int read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf);
+
+    /**
+     * Discard all pending interrupts for this device.
+     *
+     * See also section 13.4.17
+     */
+    void clear_interrupts(void) {
+        get_reg32(addr, E1000_ICR); 
+    }
+
+    /**
+     * Disabled all interrupts for this device.
+     *
+     * See also section 13.4.21
+     */
+    void disable_interrupts(void) {
+        ixl_debug("Masking off all IRQs for E1000 device %s", pci_addr);
+        set_reg32(addr, E1000_IMC, 0xffffffff); 
+    }
 
     void setup_interrupts();
 
@@ -171,6 +223,11 @@ private:
     
     void*    rx_queues;
     void*    tx_queues;
+
+    // MAC address of this device
+    struct mac_address mac_addr;
+    // Does mac_addr contain a valid value?
+    bool mac_init = false;
 };
 
 }

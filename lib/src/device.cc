@@ -92,7 +92,8 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
         // Intel
         case 0x8086:
             switch (device_id) {
-                case 0x100e:
+                case E1000_DEV_ID_82540EM:
+                    // The device emulated by QEMU when choosing an e1000 NIC
                     ixl_info("Trying e1000...");
                     return E1000_device::e1000_init(pci_addr, std::move(dev),
                                                     rx_queues, tx_queues,

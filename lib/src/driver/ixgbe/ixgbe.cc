@@ -268,8 +268,9 @@ void Ixgbe_device::init_rx(void) {
 		set_reg32(addr, IXGBE_RDT(i), 0);
 		// private data for the driver, 0-initialized
 		struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + i;
-		queue->num_entries = NUM_RX_QUEUE_ENTRIES;
-		queue->rx_index = 0;
+		queue->descr_mem   = mem;
+        queue->num_entries = NUM_RX_QUEUE_ENTRIES;
+		queue->rx_index    = 0;
 		queue->descriptors = (union ixgbe_adv_rx_desc*) mem.virt;
 	}
 
@@ -327,7 +328,8 @@ void Ixgbe_device::init_tx(void) {
 
 		// private data for the driver, 0-initialized
 		struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*) tx_queues) + i;
-		queue->num_entries = NUM_TX_QUEUE_ENTRIES;
+		queue->descr_mem   = mem;
+        queue->num_entries = NUM_TX_QUEUE_ENTRIES;
 		queue->descriptors = (union ixgbe_adv_tx_desc*) mem.virt;
 	}
 	// final step: enable DMA
@@ -502,9 +504,6 @@ void Ixgbe_device::read_stats(struct device_stats* stats) {
 		stats->tx_bytes += tx_bytes;
 	}
 }
-
-// advance index with wrap-around, this line is the reason why we require a power of two for the queue size
-#define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1))
 
 // section 1.8.2 and 7.1
 // try to receive a single packet if one is available, non-blocking

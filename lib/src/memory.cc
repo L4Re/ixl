@@ -25,7 +25,7 @@ struct dma_memory Ixl::memory_allocate_dma(Ixl_device& dev, size_t size) {
     // final DMA memory struct
     struct dma_memory ret;
 
-    ret.mem_cap = L4Re::chkcap(L4Re::Util::make_unique_cap<L4Re::Dataspace>(),
+    ret.mem_cap = L4Re::chkcap(L4Re::Util::make_shared_cap<L4Re::Dataspace>(),
                                "Failed to allocate cap for I/O memory.");
 
     ixl_debug("allocating dma memory via huge page");

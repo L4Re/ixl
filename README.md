@@ -9,4 +9,5 @@ See also the LICENSE file in this directory.
 
 * Re-enable interrupts support (probably only meaningful after looking at the
   higher layers of the network stack).
+* Make code work on big endian ISAs.
 * Re-enable Virtio driver.

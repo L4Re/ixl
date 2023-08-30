@@ -74,8 +74,16 @@ public:
 private:
     // allocated for each rx queue, keeps state for the receive function
     struct ixgbe_rx_queue {
+        // DMA'able memory from that the individual descriptors are allocated
+        struct dma_memory descr_mem;
+
+        // Array of descriptors backed by descr_mem
         volatile union ixgbe_adv_rx_desc* descriptors;
+
+        // DMA'able memory for storing incoming packets
         struct mempool* mempool;
+
+        // No. of descriptors in the queue
         uint16_t num_entries;
         // position we are reading from
         uint16_t rx_index;
@@ -85,7 +93,13 @@ private:
 
     // allocated for each tx queue, keeps state for the transmit function
     struct ixgbe_tx_queue {
+        // DMA'able memory from that the individual descriptors are allocated
+        struct dma_memory descr_mem;
+
+        // Array of descriptors backed by descr_mem
         volatile union ixgbe_adv_tx_desc* descriptors;
+
+        // No. of descriptors in the queue
         uint16_t num_entries;
         // position to clean up descriptors that where sent out by the nic
         uint16_t clean_index;
