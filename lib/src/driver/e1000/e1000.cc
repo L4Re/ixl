@@ -497,7 +497,7 @@ struct mac_address E1000_device::get_mac_addr(void) {
     // Check whether there is a valid MAC address for this device. If not,
     // read it from EEPROM
     if (! mac_init) {
-        if (read_eeprom(0x0, 2, (uint16_t *) &mac_addr.addr) != 0)
+        if (read_eeprom(0x0, 3, (uint16_t *) &mac_addr.addr) != 0)
             ixl_error("Failed to read MAC address from EEPROM.");
     
         mac_init = true;
