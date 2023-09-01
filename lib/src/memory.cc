@@ -92,7 +92,7 @@ struct mempool* Ixl::memory_allocate_mempool(Ixl_device& dev,
         // Since the memory inside the DMA window was allocated physically 
         // contiguously, we can just use an offset from the mempool's physical
         // base address to compute the physical address of each packet buffer
-        buf->buf_addr_phy = mempool->backing_mem.phy + i * sizeof(entry_size);
+        buf->buf_addr_phy = mempool->backing_mem.phy + i * entry_size;
         
         buf->mempool_idx  = i;
         buf->mempool      = mempool;
