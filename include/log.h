@@ -48,25 +48,25 @@ static void hexdump(void* void_ptr, size_t len) {
 	uint8_t* ptr = (uint8_t*) void_ptr;
 	char ascii[17];
 	for (uint32_t i = 0; i < len; i += 16) {
-		printf("%06x: ", i);
+		fprintf(stderr, "%06x: ", i);
 		int j = 0;
 		for (; j < 16 && i + j < len; j++) {
-			printf("%02x", ptr[i + j]);
+			fprintf(stderr, "%02x", ptr[i + j]);
 			if (j % 2) {
-				printf(" ");
+				fprintf(stderr, " ");
 			}
 			ascii[j] = isprint(ptr[i + j]) ? ptr[i + j] : '.';
 		}
 		ascii[j] = '\0';
 		if (j < 16) {
 			for (; j < 16; j++) {
-				printf("  ");
+				fprintf(stderr, "  ");
 				if (j % 2) {
-					printf(" ");
+					fprintf(stderr, " ");
 				}
 			}
 		}
-		printf("  %s\n", ascii);
+		fprintf(stderr, "  %s\n", ascii);
 	}
 }
 
