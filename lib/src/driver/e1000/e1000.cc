@@ -413,12 +413,16 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         queue->tx_index = next_index;
         // NIC reads from here
         txd->buffer_addr  = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
-        
+
+        // Reset descriptor command before sending (otherwise NIC won't emit
+        // any data!)
+        txd->lower.data          = 0;
         txd->lower.flags.length  = buf->size;
         txd->upper.fields.status = 0;
 
-        // always the same flags: one buffer (EOP), CRC offload
-        txd->lower.data |= E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS;
+        // always the same flags: one buffer (EOP), CRC offload, report status
+        txd->lower.data |= E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS |
+                           E1000_TXD_CMD_RS;
         // no fancy offloading stuff - only the total payload length
         // implement offloading flags here:
         //      * ip checksum offloading is trivial: just set the offset

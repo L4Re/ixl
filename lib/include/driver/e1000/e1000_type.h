@@ -63,6 +63,7 @@ struct e1000_tx_desc {
 #define E1000_TXD_STAT_DD   0x00000001  /* Descriptor done                  */
 #define E1000_TXD_CMD_EOP   0x01000000  /* End of packet                    */
 #define E1000_TXD_CMD_IFCS  0x02000000  /* Insert FCS (Ethernet checksum)   */
+#define E1000_TXD_CMD_RS    0x08000000  /* Report status                    */
 
 /*
  * E1000 device registers
