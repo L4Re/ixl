@@ -9,23 +9,23 @@ using Ixl::Ixl_device;
 using Ixl::device_stats;
 
 // number of packets sent simultaneously to our driver
-static const uint32_t BATCH_SIZE = 64;
+static const uint32_t BATCH_SIZE = 1;
 
 // excluding CRC (offloaded by default)
 #define PKT_SIZE 60
 
 static const uint8_t pkt_data[] = {
-	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, // dst MAC
-	0x10, 0x10, 0x10, 0x10, 0x10, 0x10, // src MAC
+	0x26, 0x69, 0x1e, 0xe7, 0xc6, 0x17, // dst MAC
+	0x52, 0x54, 0x00, 0x12, 0x34, 0x56, // src MAC
 	0x08, 0x00,                         // ether type: IPv4
 	0x45, 0x00,                         // Version, IHL, TOS
 	(PKT_SIZE - 14) >> 8,               // ip len excluding ethernet, high byte
 	(PKT_SIZE - 14) & 0xFF,             // ip len exlucding ethernet, low byte
 	0x00, 0x00, 0x00, 0x00,             // id, flags, fragmentation
 	0x40, 0x11, 0x00, 0x00,             // TTL (64), protocol (UDP), checksum
-	0x0A, 0x00, 0x00, 0x01,             // src ip (10.0.0.1)
-	0x0A, 0x00, 0x00, 0x02,             // dst ip (10.0.0.2)
-	0x00, 0x2A, 0x05, 0x39,             // src and dst ports (42 -> 1337)
+	0x0A, 0x0A, 0x0A, 0x02,             // src ip (10.10.10.2)
+	0x0A, 0x0A, 0x0A, 0x01,             // dst ip (10.10.10.1)
+	0x1F, 0x90, 0x1F, 0x90,             // src and dst ports (8080 -> 8080)
 	(PKT_SIZE - 20 - 14) >> 8,          // udp len excluding ip & ethernet, high byte
 	(PKT_SIZE - 20 - 14) & 0xFF,        // udp len exlucding ip & ethernet, low byte
 	0x00, 0x00,                         // udp checksum, optional
@@ -47,7 +47,7 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
 }
 
 static struct Ixl::mempool* init_mempool(Ixl_device& dev) {
-	const int NUM_BUFS = 2048;
+	const int NUM_BUFS = 1024;
 	struct Ixl::mempool* mempool = Ixl::memory_allocate_mempool(dev, NUM_BUFS, 0);
 	// pre-fill all our packet buffers with some templates that can be modified later
 	// we have to do it like this because sending is async in the hardware; we cannot re-use a buffer immediately
@@ -109,6 +109,7 @@ int main(int argc, char* argv[]) {
 			}
 		}
 		// track stats
+        sleep(3);
 	}
 }
 
