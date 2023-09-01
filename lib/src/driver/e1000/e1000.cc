@@ -127,7 +127,7 @@ void E1000_device::init_rx(void) {
             volatile struct e1000_rx_desc* rxd = queue->descriptors + j;
             struct pkt_buf* buf = pkt_buf_alloc(queue->mempool);
             if (!buf) {
-                    ixl_error("failed to allocate rx descriptor");
+                    ixl_error("failed to allocate rx buffer");
             }
 
             // Set buffer address and clear RXD flags
@@ -264,7 +264,7 @@ void E1000_device::reset_and_init(void) {
     // Start RX and TX queues
     start_rx_queue(0);
     start_tx_queue(0);
-    usleep(5000);
+    usleep(1000);
 
     // Here, we now would enable IRQs...
 
