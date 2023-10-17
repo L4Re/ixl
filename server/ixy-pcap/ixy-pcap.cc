@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "===== Packet Received at %06ld:%06ld "
                     "(Payload length %u Bytes) =====\n", 
                     tv.tv_sec, tv.tv_usec, bufs[i]->size);
-            hexdump(bufs[i]->data, bufs[i]->size);
+            ixl_hexdump(bufs[i]->data, bufs[i]->size);
             fprintf(stderr, "=============================================="
                             "=========================\n");
 

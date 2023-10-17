@@ -44,7 +44,7 @@
 	result;\
 })
 
-static void hexdump(void* void_ptr, size_t len) {
+static void ixl_hexdump(void* void_ptr, size_t len) {
 	uint8_t* ptr = (uint8_t*) void_ptr;
 	char ascii[17];
 	for (uint32_t i = 0; i < len; i += 16) {
