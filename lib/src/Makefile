@@ -4,7 +4,8 @@ L4DIR  ?= $(PKGDIR)/../..
 REQUIRES_LIBS = libio-vbus libc_support_misc
 
 TARGET = libixylon.a libixylon.so
-SRC_CC = pci.cc \
+SRC_CC = log.cc \
+         pci.cc \
 		 memory.cc \
 		 stats.cc \
 		 interrupts.cc \
