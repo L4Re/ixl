@@ -47,6 +47,9 @@ struct __attribute__((__packed__)) mac_address {
  */
 class Ixl_device {
 public:
+    /**
+     * Returns the name of the driver.
+     */
     virtual std::string get_driver_name(void) = 0;
 
     virtual uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
@@ -77,6 +80,20 @@ public:
 
     L4Re::Util::Shared_cap<L4Re::Dma_space> get_dma_space(void) {
         return dma_cap;
+    }
+
+    /**
+     * Returns the number of RX queues allocated by the driver.
+     */
+    uint16_t get_num_rx_queues(void) {
+        return num_rx_queues;
+    }
+
+    /**
+     * Returns the number of TX queues allocated by the driver.
+     */
+    uint16_t get_num_tx_queues(void) {
+        return num_tx_queues;
     }
 
     /**
