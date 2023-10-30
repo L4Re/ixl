@@ -15,10 +15,8 @@ device_stats::device_stats(Ixl_device *dev) : device(dev) {
 }
 
 void device_stats::print_stats(struct device_stats* stats) {
-	printf("[%s] RX: %zu bytes %zu packets\n", stats->device->get_pci_addr(),
-           stats->rx_bytes, stats->rx_pkts);
-	printf("[%s] TX: %zu bytes %zu packets\n", stats->device->get_pci_addr(),
-           stats->tx_bytes, stats->tx_pkts);
+	printf("RX: %zu bytes %zu packets\n", stats->rx_bytes, stats->rx_pkts);
+	printf("TX: %zu bytes %zu packets\n", stats->tx_bytes, stats->tx_pkts);
 }   
 
 static double diff_mpps(uint64_t pkts_new, uint64_t pkts_old, uint64_t nanos) {
@@ -33,13 +31,13 @@ static uint32_t diff_mbit(uint64_t bytes_new, uint64_t bytes_old, uint64_t pkts_
 }
 
 void device_stats::print_stats_diff(struct device_stats* stats_new, struct device_stats* stats_old, uint64_t nanos) {
-	printf("[%s] RX: %d Mbit/s %.2f Mpps\n", stats_new->device->get_pci_addr(),
-		diff_mbit(stats_new->rx_bytes, stats_old->rx_bytes, stats_new->rx_pkts, stats_old->rx_pkts, nanos),
-		diff_mpps(stats_new->rx_pkts, stats_old->rx_pkts, nanos)
+	printf("RX: %d Mbit/s %.2f Mpps\n",	diff_mbit(stats_new->rx_bytes,
+        stats_old->rx_bytes, stats_new->rx_pkts, stats_old->rx_pkts, nanos),
+        diff_mpps(stats_new->rx_pkts, stats_old->rx_pkts, nanos)
 	);
-	printf("[%s] TX: %d Mbit/s %.2f Mpps\n", stats_new->device->get_pci_addr(),
-		diff_mbit(stats_new->tx_bytes, stats_old->tx_bytes, stats_new->tx_pkts, stats_old->tx_pkts, nanos),
-		diff_mpps(stats_new->tx_pkts, stats_old->tx_pkts, nanos)
+	printf("TX: %d Mbit/s %.2f Mpps\n",	diff_mbit(stats_new->tx_bytes,
+        stats_old->tx_bytes, stats_new->tx_pkts, stats_old->tx_pkts, nanos),
+        diff_mpps(stats_new->tx_pkts, stats_old->tx_pkts, nanos)
 	);
 }
 

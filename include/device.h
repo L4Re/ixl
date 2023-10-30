@@ -75,15 +75,11 @@ public:
         }
     }
 
-    const char* get_pci_addr(void) {
-        return pci_addr;
-    }
-
     L4Re::Util::Shared_cap<L4Re::Dma_space> get_dma_space(void) {
         return dma_cap;
     }
 
-    static Ixl_device* ixl_init(const char* pci_addr, uint16_t rx_queues,
+    static Ixl_device* ixl_init(uint32_t dev_idx, uint16_t rx_queues,
                                 uint16_t tx_queues, int irq_timeout);
 
 protected:
@@ -101,7 +97,6 @@ protected:
     /*                          Member variables                            */
 
     // TODO purge vfio stuff
-	const char* pci_addr;
 	uint16_t    num_rx_queues;
 	uint16_t    num_tx_queues;
 	bool        vfio;

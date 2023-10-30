@@ -49,17 +49,11 @@ void Ixl_device::create_dma_space(void) {
                         dma_cap.get()),
                         "Failed to bind to device's DMA domain.");
 
-    ixl_debug("Created DMA space for device %s", pci_addr);
+    ixl_debug("Created DMA space for device");
 }
 
-Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
+Ixl_device* Ixl_device::ixl_init(uint32_t dev_idx, uint16_t rx_queues,
                                  uint16_t tx_queues, int irq_timeout) {
-    check_err(pci_addr != NULL, "pci_addr must not be NULL!");
-    
-    // Only take the function identifier (last digit) of the canonical PCI 
-    // address as an index for device discovery
-    uint32_t dev_idx = atoi(pci_addr + strlen(pci_addr) - 1);
-
     // Read PCI configuration space
     // For VFIO, we could access the config space another way
     // (VFIO_PCI_CONFIG_REGION_INDEX). This is not needed, though, because
@@ -95,13 +89,13 @@ Ixl_device* Ixl_device::ixl_init(const char* pci_addr, uint16_t rx_queues,
                 case E1000_DEV_ID_82540EM:
                     // The device emulated by QEMU when choosing an e1000 NIC
                     ixl_info("Trying e1000...");
-                    return E1000_device::e1000_init(pci_addr, std::move(dev),
+                    return E1000_device::e1000_init(std::move(dev),
                                                     rx_queues, tx_queues,
                                                     irq_timeout);
                     break;
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");
-                    return Ixgbe_device::ixgbe_init(pci_addr, std::move(dev),
+                    return Ixgbe_device::ixgbe_init(std::move(dev),
                                                     rx_queues, tx_queues,
                                                     irq_timeout);
                     break;

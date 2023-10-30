@@ -69,11 +69,11 @@ static struct Ixl::mempool* init_mempool(Ixl_device& dev) {
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
-		printf("Usage: %s <pci bus id>\n", argv[0]);
+		printf("Usage: %s <vbus dev idx>\n", argv[0]);
 		return 1;
 	}
 
-	Ixl_device* dev = Ixl_device::ixl_init(argv[1], 1, 1, 0);
+	Ixl_device* dev = Ixl_device::ixl_init(atoi(argv[1]), 1, 1, 0);
 	struct Ixl::mempool* mempool = init_mempool(*dev);
 
 	uint64_t last_stats_printed = device_stats::monotonic_time();

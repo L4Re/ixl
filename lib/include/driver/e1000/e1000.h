@@ -68,7 +68,6 @@ public:
 
     /**
      * Initializes and returns the E1000 device.
-     * @param pci_addr The PCI address of the device.
      * @param pci_dev PCI device handle received from this task's vbus
      * @param rx_queues The number of receiver queues.
      * @param tx_queues The number of transmitter queues.
@@ -77,8 +76,7 @@ public:
      *      - if set to 0 the interrupt is disabled entirely)
      * @return The initialized IXGBE device.
      */
-    static E1000_device* e1000_init(const char *pci_addr,
-                                    L4vbus::Pci_dev&& pci_dev,
+    static E1000_device* e1000_init(L4vbus::Pci_dev&& pci_dev,
                                     uint16_t rx_queues,
                                     uint16_t tx_queues,
                                     int irq_timeout);
@@ -127,9 +125,8 @@ private:
 
 
     /***                           Constructor                            ***/
-    E1000_device(const char* pci_address, L4vbus::Pci_dev&& dev,
-                 uint16_t rx_qs, uint16_t tx_qs, bool irq_enabled,
-                 uint32_t itr_rate, int irq_timeout_ms) {
+    E1000_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
+                 bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
 
         // Integrity check: The E1000 series does not have multi-queue support
         if (rx_qs != 1)
@@ -144,7 +141,6 @@ private:
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout_ms         = irq_timeout_ms;
     
-        pci_addr = strdup(pci_address);
         pci_dev  = dev;
 
         // Temporary hack to indicate absence of IRQ implementation
@@ -196,7 +192,7 @@ private:
      * See also section 13.4.21
      */
     void disable_interrupts(void) {
-        ixl_debug("Masking off all IRQs for E1000 device %s", pci_addr);
+        ixl_debug("Masking off all IRQs for E1000 device");
         set_reg32(addr, E1000_IMC, 0xffffffff); 
     }
 

@@ -21,11 +21,11 @@ const int BATCH_SIZE = 32;
 
 int main(int argc, char* argv[]) {
 	if (argc < 2 || argc > 3) {
-		printf("Usage: %s <pci bus id> [n packets]\n", argv[0]);
+		printf("Usage: %s <vbus dev idx> [n packets]\n", argv[0]);
 		return 1;
 	}
 
-	Ixl_device* dev = Ixl_device::ixl_init(argv[1], 1, 1, 0);
+	Ixl_device* dev = Ixl_device::ixl_init(atoi(argv[1]), 1, 1, 0);
 
 	int64_t n_packets = -1;
 	if (argc == 3) {

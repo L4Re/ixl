@@ -349,7 +349,7 @@ void Ixgbe_device::wait_for_link(void) {
 
 // see section 4.6.3
 void Ixgbe_device::reset_and_init(void) {
-	ixl_info("Resetting device %s", pci_addr);
+	ixl_info("Resetting ixgbe device.");
 
 	// section 4.6.3.1 - disable all interrupts
 	disable_interrupts();
@@ -363,7 +363,7 @@ void Ixgbe_device::reset_and_init(void) {
 
 	struct mac_address mac = get_mac_addr();
 
-	ixl_info("Initializing device %s", pci_addr);
+	ixl_info("Initializing ixgbe device.");
 	ixl_info("MAC address %02x:%02x:%02x:%02x:%02x:%02x", mac.addr[0], mac.addr[1], mac.addr[2], mac.addr[3], mac.addr[4], mac.addr[5]);
 
 	// section 4.6.3 - Wait for EEPROM auto read completion
@@ -407,7 +407,6 @@ void Ixgbe_device::reset_and_init(void) {
 
 /**
  * Initializes and returns the IXGBE device.
- * @param pci_addr The PCI address of the device.
  * @param pci_dev PCI device handle received from this task's vbus
  * @param rx_queues The number of receiver queues.
  * @param tx_queues The number of transmitter queues.
@@ -416,8 +415,7 @@ void Ixgbe_device::reset_and_init(void) {
  * 	- if set to 0 the interrupt is disabled entirely)
  * @return The initialized IXGBE device.
  */
-Ixgbe_device* Ixgbe_device::ixgbe_init(const char* pci_addr,
-                                       L4vbus::Pci_dev&& pci_dev,
+Ixgbe_device* Ixgbe_device::ixgbe_init(L4vbus::Pci_dev&& pci_dev,
                                        uint16_t rx_queues,
                                        uint16_t tx_queues,
                                        int irq_timeout) {
@@ -429,7 +427,7 @@ Ixgbe_device* Ixgbe_device::ixgbe_init(const char* pci_addr,
 	}
 
 	// Allocate memory for the ixgbe device that will be returned
-	Ixgbe_device *dev = new Ixgbe_device(pci_addr, std::move(pci_dev),
+	Ixgbe_device *dev = new Ixgbe_device(std::move(pci_dev),
                                          rx_queues, tx_queues, 
                                          (irq_timeout != 0), 
                                          0x028, // itr_rate (10ys => 97600 INT/s)

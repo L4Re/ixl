@@ -204,7 +204,7 @@ void E1000_device::wait_for_link(void) {
 
 /* Reset the device and bring up the link again in a fresh state            */
 void E1000_device::reset_and_init(void) {
-    ixl_info("Resetting device %s.", pci_addr);
+    ixl_info("Resetting E1000 device.");
 
     // Prevent device from sending any more IRQs
     disable_interrupts();
@@ -516,15 +516,14 @@ void E1000_device::set_mac_addr(struct mac_address mac) {
     return;
 }
 
-E1000_device* E1000_device::e1000_init(const char *pci_addr,
-                                       L4vbus::Pci_dev&& pci_dev,
+E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev&& pci_dev,
                                        uint16_t rx_queues,
                                        uint16_t tx_queues,
                                        int irq_timeout) {
 
     // Allocate memory for the ixgbe device that will be returned               
     // TODO: Check whether these IRQ settings are meaningful for E1000.
-    E1000_device *dev = new E1000_device(pci_addr, std::move(pci_dev),          
+    E1000_device *dev = new E1000_device(std::move(pci_dev),          
                                          rx_queues, tx_queues,                  
                                          (irq_timeout != 0),                    
                                          0x028, // itr_rate (10ys => 97600 INT/s)

@@ -26,12 +26,12 @@ static void forward(Ixl::Ixl_device* rx_dev, uint16_t rx_queue, Ixl::Ixl_device*
 int main(int argc, char* argv[]) {
 	if (argc != 3) {
 		printf("%s forwards packets between two ports.\n", argv[0]);
-		printf("Usage: %s <pci bus id2> <pci bus id1>\n", argv[0]);
+		printf("Usage: %s <vbus dev idx 2> <vbus dev idx 1>\n", argv[0]);
 		return 1;
 	}
 
-	Ixl::Ixl_device* dev1 = Ixl::Ixl_device::ixl_init(argv[1], 1, 1, -1);
-	Ixl::Ixl_device* dev2 = Ixl::Ixl_device::ixl_init(argv[2], 1, 1, 0);
+	Ixl::Ixl_device* dev1 = Ixl::Ixl_device::ixl_init(atoi(argv[1]), 1, 1, -1);
+	Ixl::Ixl_device* dev2 = Ixl::Ixl_device::ixl_init(atoi(argv[2]), 1, 1, 0);
 
 	uint64_t last_stats_printed = Ixl::device_stats::monotonic_time();
 	Ixl::device_stats stats1(dev1);

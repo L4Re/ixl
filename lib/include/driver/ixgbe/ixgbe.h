@@ -52,7 +52,6 @@ public:
 
     /**
      * Initializes and returns the IXGBE device.
-     * @param pci_addr The PCI address of the device.
      * @param pci_dev PCI device handle received from this task's vbus
      * @param rx_queues The number of receiver queues.
      * @param tx_queues The number of transmitter queues.
@@ -61,8 +60,7 @@ public:
      *      - if set to 0 the interrupt is disabled entirely)
      * @return The initialized IXGBE device.
      */
-    static Ixgbe_device* ixgbe_init(const char *pci_addr,
-                                    L4vbus::Pci_dev&& pci_dev,
+    static Ixgbe_device* ixgbe_init(L4vbus::Pci_dev&& pci_dev,
                                     uint16_t rx_queues,
                                     uint16_t tx_queues,
                                     int irq_timeout);
@@ -111,9 +109,8 @@ private:
 
 
     /***                           Constructor                            ***/
-    Ixgbe_device(const char* pci_address, L4vbus::Pci_dev&& dev,
-                 uint16_t rx_qs, uint16_t tx_qs, bool irq_enabled,
-                 uint32_t itr_rate, int irq_timeout_ms) {
+    Ixgbe_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
+                 bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
         num_rx_queues = rx_qs;
         num_tx_queues = tx_qs;
 
@@ -121,7 +118,6 @@ private:
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout_ms         = irq_timeout_ms;
     
-        pci_addr = strdup(pci_address);
         pci_dev  = dev;
 
         // Temporary hack to indicate absence of IRQ implementation
