@@ -79,7 +79,23 @@ public:
         return dma_cap;
     }
 
-    static Ixl_device* ixl_init(uint32_t dev_idx, uint16_t rx_queues,
+    /**
+     * Creates a new driver instance for a PCI device found on the vbus 
+     * passed to this function. After executing this function, the underlying
+     * device shall be in an operational state and ready to handle send and 
+     * receive requests.
+     *
+     * \param vbus         Virtual device bus that shall be searched for
+     *                     suitable PCI Ethernet devices
+     * \param dev_idx      Index of the device to open (in case multiple
+     *                     devices are present on the vbus)
+     * \param rx_queues    Number of NIC receive queues to allocate
+     * \param tx_queues    Number of NIC send queues to allocate
+     * \param irq_timeout  Timeout when waiting for IRQs from the NIC. If set
+     *                     to zero, driver is configured in polling mode.
+     */
+    static Ixl_device* ixl_init(L4::Cap<L4vbus::Vbus> vbus,
+                                uint32_t dev_idx, uint16_t rx_queues,
                                 uint16_t tx_queues, int irq_timeout);
 
 protected:

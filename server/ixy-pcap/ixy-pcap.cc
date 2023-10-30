@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include <l4/re/error_helper>
+#include <l4/re/env>
+
 #include <l4/ixylon/device.h>
 #include <l4/ixylon/memory.h>
 #include <l4/ixylon/log.h>
@@ -25,7 +28,11 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	Ixl_device* dev = Ixl_device::ixl_init(atoi(argv[1]), 1, 1, 0);
+    // Get vbus capability received on startup
+    auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
+                             "Get vbus capability.", -L4_ENOENT);  
+
+	Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
 
 	int64_t n_packets = -1;
 	if (argc == 3) {

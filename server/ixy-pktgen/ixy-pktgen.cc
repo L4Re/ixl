@@ -1,4 +1,17 @@
+/*****************************************************************************
+ *                                                                           *
+ *       ixy-pktgen - Send statically configured raw Ethernet frames         *
+ *                                                                           *
+ * This version of ixy-pktgen is an adapted form of the original ixy-pktgen  *
+ * from the ixy driver package.                                              *
+ *                                                                           *
+ *****************************************************************************/
+
+
 #include <stdio.h>
+
+#include <l4/re/error_helper>
+#include <l4/re/env>
 
 #include <l4/ixylon/stats.h>
 #include <l4/ixylon/log.h>
@@ -73,7 +86,11 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	Ixl_device* dev = Ixl_device::ixl_init(atoi(argv[1]), 1, 1, 0);
+    // Get vbus capability received on startup                                  
+    auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),   
+                             "Get vbus capability.", -L4_ENOENT); 
+
+	Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
 	struct Ixl::mempool* mempool = init_mempool(*dev);
 
 	uint64_t last_stats_printed = device_stats::monotonic_time();

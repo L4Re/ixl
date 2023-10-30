@@ -54,12 +54,15 @@ l4_uint64_t get_bar0_addr(L4vbus::Pci_dev& dev);
  * however would require some engineering effort in IO as well to expose full
  * PCI addresses.
  *
- * @param idx        - Index of the device to search.
- * @param pci_class  - PCI class ID requirement for returned devices.
- * @param pci_sclass - PCI subclass ID requirement for returned devices.
+ * @param vbus       Vbus to search for devices.
+ * @param idx        Index of the device to search.
+ * @param pci_class  PCI class ID requirement for returned devices.
+ * @param pci_sclass PCI subclass ID requirement for returned devices.
  *
  * @return A handle to the corresponding PCI device.
  */
-L4vbus::Pci_dev pci_get_dev(uint32_t idx, uint8_t pci_class, uint8_t pci_sclass);
+L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
+                            uint32_t idx, uint8_t pci_class,
+                            uint8_t pci_sclass);
 
 #endif // IXY_PCI_H

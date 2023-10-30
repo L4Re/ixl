@@ -168,11 +168,9 @@ int pci_open_resource(const char* pci_addr, const char* resource, int flags) {
 }
 
 /* Acquires a PCI devices at a certain index on the "vbus" capability.      */
-L4vbus::Pci_dev pci_get_dev(uint32_t idx, uint8_t pci_class, uint8_t pci_sclass)
+L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
+                            uint32_t idx, uint8_t pci_class, uint8_t pci_sclass)
 {
-    auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
-                             "Get vbus capability.", -L4_ENOENT);
-
     ixl_debug("Starting device discovery...");
     auto root = vbus->root();
     L4vbus::Pci_dev child;

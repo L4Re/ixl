@@ -52,7 +52,9 @@ void Ixl_device::create_dma_space(void) {
     ixl_debug("Created DMA space for device");
 }
 
-Ixl_device* Ixl_device::ixl_init(uint32_t dev_idx, uint16_t rx_queues,
+/* Create and initialize the driver for a certain device.                   */
+Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
+                                 uint32_t dev_idx, uint16_t rx_queues,
                                  uint16_t tx_queues, int irq_timeout) {
     // Read PCI configuration space
     // For VFIO, we could access the config space another way
@@ -63,7 +65,7 @@ Ixl_device* Ixl_device::ixl_init(uint32_t dev_idx, uint16_t rx_queues,
     uint32_t device_id;
     
     // We search for Ethernet devices only (class 0x2, subclass 0x0)
-    L4vbus::Pci_dev dev = pci_get_dev(dev_idx, 0x02, 0x00);
+    L4vbus::Pci_dev dev = pci_get_dev(vbus, dev_idx, 0x02, 0x00);
     check_err(dev.cfg_read(0, &vendor_id, 16), "Failed to read PCI vendor ID");
     check_err(dev.cfg_read(2, &device_id, 16), "Failed to read PCI device ID");
 
