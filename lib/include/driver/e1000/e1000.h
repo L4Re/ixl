@@ -40,7 +40,7 @@ public:
     static const int NUM_TX_QUEUE_ENTRIES = 256;
 
     static const int PKT_BUF_ENTRY_SIZE  = 2048;
-    static const int MIN_MEMPOOL_ENTRIES = 4096;
+    static const int MIN_MEMPOOL_ENTRIES = 512;
 
     static const int TX_CLEAN_BATCH      = 32;
 
