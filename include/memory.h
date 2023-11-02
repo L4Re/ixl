@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <atomic>
+
 #include <l4/re/util/shared_cap>
 #include <l4/re/dma_space>
 
@@ -48,11 +50,19 @@ struct mempool {
     
     uint32_t buf_size;
     uint32_t num_entries;
-    // memory is managed via a simple stack
-    // replacing this with a lock-free queue (or stack) makes this thread-safe
-    uint32_t free_stack_top;
-    // the stack contains the entry id, i.e., base_addr + entry_id * buf_size is the address of the buf
-    uint32_t free_stack[];
+
+    // Memory is managed with a lock-free queue for indicating which buffers
+    // are currently available. Note that this queue is only a list of array
+    // indices pointing to each other (no real "data objects" are stored)
+    // which allows for a very compressed representation. UINT32_MAX serves as
+    // representation for an invalid index (i.e., queue end).
+
+    std::atomic_uint32_t queue_head;
+    std::atomic_uint32_t queue_tail;
+
+    // The queue contains the entry id, i.e., base_addr + entry_id * buf_size
+    // is the address of the buf
+    std::atomic_uint32_t free_queue[];
 };
 
 struct dma_memory memory_allocate_dma(Ixl_device& dev, size_t size);
