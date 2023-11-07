@@ -18,14 +18,29 @@ namespace Ixl {
 
 #define HUGE_PAGE_BITS 21
 #define HUGE_PAGE_SIZE (1 << HUGE_PAGE_BITS) // 2_097_152 = 2MiB
-#define SIZE_PKT_BUF_HEADROOM 40
+#define SIZE_PKT_BUF_HEADROOM (40 - sizeof(std::atomic_uint32_t))
 
 struct pkt_buf {
     // physical address to pass a buffer to a nic
     L4Re::Dma_space::Dma_addr buf_addr_phy;
+
+    // Memory pool that this packet buffer belongs to
     struct mempool* mempool;
+    // Index of this packet in the mempool
     uint32_t mempool_idx;
+
+    // Amount of payload data in this packet
     uint32_t size;
+
+    // Reference counter. Upper layers of a network stack may use this counter
+    // for usage tracking of buffers, returning unused entries to the mempool
+    // FIXME: Using a C++ atomic in this place is dangerous, as there is no
+    //        guarantee on the size of this type. Hence, adding ref_cnt here
+    //        could easily exceed the 64B size requirement of struct pkt_buf.
+    //        However, adding the refcounter here is the cleaner than
+    //        maintaining an additional "packet ref count map"...
+    std::atomic_uint32_t ref_cnt;
+
     uint8_t head_room[SIZE_PKT_BUF_HEADROOM];
     uint8_t data[] __attribute__((aligned(64)));
 };
