@@ -20,11 +20,11 @@ struct device_stats {
 
     static uint64_t monotonic_time();
 
-	Ixl_device *device;
-	size_t rx_pkts;
-	size_t tx_pkts;
-	size_t rx_bytes;
-	size_t tx_bytes;
+    Ixl_device *device;
+    size_t rx_pkts;
+    size_t tx_pkts;
+    size_t rx_bytes;
+    size_t tx_bytes;
 };
 
 }
