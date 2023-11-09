@@ -14,7 +14,7 @@
  * @return Packets per millisecond.
  */
 static uint64_t ppms(uint64_t received_pkts, uint64_t elapsed_time_nanos) {
-	return received_pkts / (elapsed_time_nanos / 1000000);
+    return received_pkts / (elapsed_time_nanos / 1000000);
 }
 
 /**
@@ -26,22 +26,22 @@ static uint64_t ppms(uint64_t received_pkts, uint64_t elapsed_time_nanos) {
  * @return Whether to disable NIC interrupts or not.
  */
 void check_interrupt(struct interrupt_queues* interrupt, uint64_t diff, uint32_t buf_index, uint32_t buf_size) {
-	struct interrupt_moving_avg* avg = &interrupt->moving_avg;
-	avg->sum -= avg->measured_rates[avg->index];
-	avg->measured_rates[avg->index] = ppms(interrupt->rx_pkts, diff);
-	avg->sum += avg->measured_rates[avg->index];
-	if (avg->length < MOVING_AVERAGE_RANGE) {
-		avg->length++;
-	}
-	avg->index = (avg->index + 1) % MOVING_AVERAGE_RANGE;
-	interrupt->rx_pkts = 0;
-	uint64_t average = avg->sum / avg->length;
-	if (average > INTERRUPT_THRESHOLD) {
-		interrupt->interrupt_enabled = false;
-	} else if (buf_index == buf_size) {
-		interrupt->interrupt_enabled = false;
-	} else {
-		interrupt->interrupt_enabled = true;
-	}
-	interrupt->last_time_checked = Ixl::device_stats::monotonic_time();
+    struct interrupt_moving_avg* avg = &interrupt->moving_avg;
+    avg->sum -= avg->measured_rates[avg->index];
+    avg->measured_rates[avg->index] = ppms(interrupt->rx_pkts, diff);
+    avg->sum += avg->measured_rates[avg->index];
+    if (avg->length < MOVING_AVERAGE_RANGE) {
+        avg->length++;
+    }
+    avg->index = (avg->index + 1) % MOVING_AVERAGE_RANGE;
+    interrupt->rx_pkts = 0;
+    uint64_t average = avg->sum / avg->length;
+    if (average > INTERRUPT_THRESHOLD) {
+        interrupt->interrupt_enabled = false;
+    } else if (buf_index == buf_size) {
+        interrupt->interrupt_enabled = false;
+    } else {
+        interrupt->interrupt_enabled = true;
+    }
+    interrupt->last_time_checked = Ixl::device_stats::monotonic_time();
 }
