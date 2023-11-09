@@ -159,14 +159,6 @@ uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev) {
     return (uint8_t *) iomem_addr;
 }
 
-int pci_open_resource(const char* pci_addr, const char* resource, int flags) {
-    char path[PATH_MAX];
-    snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/%s", pci_addr, resource);
-    ixl_debug("Opening PCI resource at %s", path);
-    int fd = check_err(open(path, flags), "open pci resource");
-    return fd;
-}
-
 /* Acquires a PCI devices at a certain index on the "vbus" capability.      */
 L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
                             uint32_t idx, uint8_t pci_class, uint8_t pci_sclass)

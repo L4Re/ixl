@@ -1,11 +1,12 @@
 #include <l4/re/error_helper>
 #include <l4/re/env>
 
+#include <l4/vbus/vbus>
+
 #include <l4/ixylon/device.h>
 
 #include "driver/e1000/e1000.h"
 #include "driver/ixgbe/ixgbe.h"
-// #include "driver/virtio.h"
 #include "pci.h"
 
 using namespace Ixl;
@@ -74,17 +75,6 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
     // particular driver might work. With more time and testing, we can add
     // more supported devices.
     switch (vendor_id) {
-        // Virtio
-        case 0x1af4:
-            if (device_id >= 1000) {
-                ixl_error("Virtio driver is currently broken. Aborting...");
-                // return virtio_init(pci_addr, rx_queues, tx_queues);
-            }
-            else {
-                ixl_error("Unsupported device %x of vendor %x. "
-                          "No suitable driver found.", device_id, vendor_id);
-            }
-            break;
         // Intel
         case 0x8086:
             switch (device_id) {

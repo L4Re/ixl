@@ -26,8 +26,6 @@ void enable_dma(L4vbus::Pci_dev& dev);
  */
 uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev);
 
-int pci_open_resource(const char* pci_addr, const char* resource, int flags);
-
 /**
  * Computes the size of the I/O memory that can be accessed by mapping BAR0
  * of the device dev.
