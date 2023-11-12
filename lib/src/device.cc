@@ -39,7 +39,7 @@ void Ixl_device::create_dma_space(void) {
 
     L4Re::chksys(L4Re::Env::env()->user_factory()->create(dma_cap.get()),
                  "Failed to create DMA space.");
-    
+
     // This is the step where we bind the DMA domain of the device to the 
     // DMA space we just created for this task. The first argument to the
     // assignment operation is the domain_id, i.e. the starting address of
@@ -51,6 +51,37 @@ void Ixl_device::create_dma_space(void) {
                         "Failed to bind to device's DMA domain.");
 
     ixl_debug("Created DMA space for device");
+}
+
+/* Retrieves the vICU cap of the vbus that pci_dev is located on            */
+void Ixl_device::setup_icu_cap(void) {
+    L4vbus::Icu   icudev;           // vICU of device's vbus
+    l4_icu_info_t icu_info;         // Struct with some information on the vICU
+
+    auto vbus = pci_dev.bus_cap();
+
+    // For each vbus, there is an ICU and it has a fixed hardware ID
+    if (vbus->root().device_by_hid(&icudev, "L40009") < 0)
+        ixl_error("Failed to get ICU device.");
+
+    interrupts.vicu = L4Re::chkcap(L4Re::Util::cap_alloc.alloc<L4::Icu>(),
+                                   "Failed to allocate ICU capability.");
+
+    if (icudev.vicu(interrupts.vicu) != 0)
+        ixl_error("Failed to request ICU capability.");
+
+    // Do some sanity checks. We require MSI(X) support. Also, we want to have
+    // a separate IRQ per receive queue.
+    if (l4_error(interrupts.vicu->info(&icu_info)) < 0)
+        ixl_error("Failed to get ICU info");
+
+    if (! (icu_info.features & L4::Icu::F_msi))
+        ixl_error("ICU does not support MSI.");
+
+    if (icu_info.nr_msis < num_rx_queues) {
+        ixl_error("ICU supports only %u MSIs, but driver needs %u.",
+                  icu_info.nr_msis, num_rx_queues);
+    }
 }
 
 /* Create and initialize the driver for a certain device.                   */

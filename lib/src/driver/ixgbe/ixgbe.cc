@@ -1,8 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <linux/limits.h>
-#include <sys/stat.h>
+
+#include <l4/re/error_helper>
 
 #include <l4/ixylon/log.h>
 #include <l4/ixylon/memory.h>
@@ -11,7 +10,6 @@
 #include <l4/ixylon/stats.h>
 
 #include "driver/ixgbe/ixgbe.h"
-#include "libixy-vfio.h"
 
 using namespace Ixl;
 
@@ -102,7 +100,6 @@ void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
 
 /**
  * Enable MSI or MSI-X interrupt for queue depending on which is supported (Prefer MSI-x).
- * @param dev The device.
  * @param queue_id The ID of the queue to enable.
  */
 void Ixgbe_device::enable_interrupt(uint16_t queue_id) {
@@ -110,14 +107,12 @@ void Ixgbe_device::enable_interrupt(uint16_t queue_id) {
         return;
     }
     switch (interrupts.interrupt_type) {
-        /*
-        case VFIO_PCI_MSIX_IRQ_INDEX:
+        case IXL_IRQ_MSIX:
             enable_msix_interrupt(queue_id);
             break;
-        case VFIO_PCI_MSI_IRQ_INDEX:
+        case IXL_IRQ_MSI:
             enable_msi_interrupt(queue_id);
             break;
-        */
         default:
             ixl_warn("Interrupt type not supported: %d", interrupts.interrupt_type);
             return;
@@ -125,45 +120,98 @@ void Ixgbe_device::enable_interrupt(uint16_t queue_id) {
 }
 
 /**
- * Setup interrupts by enabling VFIO interrupts.
- * @param dev The device.
+ * Setup interrupts by enabling one MSI / MSI-X interrupt per receive queue.
+ * If available, MSI-X is preferred over MSI.
  */
 void Ixgbe_device::setup_interrupts(void) {
-    if (!interrupts.interrupts_enabled) {
+    if (! interrupts.interrupts_enabled) {
         return;
     }
-    interrupts.queues = (struct interrupt_queues*) malloc(num_rx_queues * sizeof(struct interrupt_queues));
-    interrupts.interrupt_type = vfio_setup_interrupt(vfio_fd);
-    switch (interrupts.interrupt_type) {
-        /*
-        case VFIO_PCI_MSIX_IRQ_INDEX: {
-            for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
-                int vfio_event_fd = vfio_enable_msix(dev->ixy.vfio_fd, rx_queue);
-                int vfio_epoll_fd = vfio_epoll_ctl(vfio_event_fd);
-                dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
-                dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
-                dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
-                dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
-                dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
-            }
-            break;
+
+    interrupts.queues = (struct interrupt_queue*) malloc(num_rx_queues * sizeof(struct interrupt_queue));
+
+    // Determine type of interrupt available at the device
+    if (pcidev_supports_msix(pci_dev)) {
+        uint32_t bir;               // BAR location of MSI-X table
+        uint32_t table_offs;        // Offset of MSI-X table in BAR
+        uint32_t table_size;        // Size of MSI-X table
+
+        ixl_info("Using MSI-X interrupts...");
+        interrupts.interrupt_type = IXL_IRQ_MSIX;
+        setup_msix(pci_dev);
+
+        pcidev_get_msix_info(pci_dev, &bir, &table_offs, &table_size);
+        // FIXME: Right now we rely on the MSI-X table being located in BAR 0
+        if (bir != 0) {
+            ixl_error("Can not access MSI-X table in BAR %u.", bir);
         }
-        case VFIO_PCI_MSI_IRQ_INDEX: {
-            int vfio_event_fd = vfio_enable_msi(dev->ixy.vfio_fd);
-            int vfio_epoll_fd = vfio_epoll_ctl(vfio_event_fd);
-            for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
-                dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
-                dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
-                dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
-                dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
-                dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
-            }
-            break;
+
+        for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
+            l4_icu_msi_info_t msi_info;
+
+            // Create and bind the IRQ to the vICU of the PCI device's bus
+            create_and_bind_irq(rq, &interrupts.queues[rq].irq,
+                                interrupts.vicu);
+
+            // Get the MSI info
+            uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
+            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+                         "Failed to retrieve MSI info.");
+            ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
+                      rq, msi_info.msi_addr, msi_info.msi_data);
+
+            // PCI-enable of MSI-X
+            pcidev_enable_msix(rq, msi_info, addr, table_offs, table_size);
+
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+                         "Failed to unmask interrupt");
+            ixl_debug("Attached to MSI-X %u", rq);
+
+            interrupts.queues[rq].moving_avg.length = 0;
+            interrupts.queues[rq].moving_avg.index  = 0;
+            interrupts.queues[rq].interval = INTERRUPT_INITIAL_INTERVAL;
         }
-        */
-        default:
-            ixl_warn("Interrupt type not supported: %d", interrupts.interrupt_type);
-            return;
+    }
+    else if (pcidev_supports_msi(pci_dev)) {
+        ixl_info("Using MSI interrupts...");
+        interrupts.interrupt_type = IXL_IRQ_MSI;
+        setup_msi(pci_dev);
+
+        for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
+            l4_icu_msi_info_t msi_info;
+
+            // Create and bind the IRQ to the vICU of the PCI device's bus
+            create_and_bind_irq(rq, &interrupts.queues[rq].irq,
+                                interrupts.vicu);
+
+            // Get the MSI info
+            uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
+            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+                         "Failed to retrieve MSI info.");
+            ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
+                      rq, msi_info.msi_addr, msi_info.msi_data);
+
+            // PCI-enable of MSI
+            pcidev_enable_msi(pci_dev, rq, msi_info);
+
+            // Lastly, unmask the IRQ
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+                         "Failed to unmask interrupt");
+            ixl_debug("Attached to MSI %u", rq);
+
+            interrupts.queues[rq].moving_avg.length = 0;
+            interrupts.queues[rq].moving_avg.index  = 0;
+            interrupts.queues[rq].interval = INTERRUPT_INITIAL_INTERVAL;
+        }
+    }
+    else {
+        // We should never reach this code though, as the presence of at
+        // least MSIs should have been asserted in setup_icu_cap()
+        interrupts.interrupt_type = IXL_IRQ_LEGACY;
+
+        ixl_warn("Device does not support MSIs. Disabling interrupts...");
+        interrupts.interrupts_enabled = false;
+        return;
     }
 }
 
@@ -509,15 +557,17 @@ void Ixgbe_device::read_stats(struct device_stats* stats) {
 // tl;dr: we control the tail of the queue, the hardware the head
 uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                                 uint32_t num_bufs) {
-    struct interrupt_queues* interrupt = NULL;
+    struct interrupt_queue* interrupt = NULL;
     bool interrupts_enabled = interrupts.interrupts_enabled;
+
+    ixl_debug("Called rx_batch");
 
     if (interrupts_enabled) {
         interrupt = &interrupts.queues[queue_id];
     }
 
     if (interrupts_enabled && interrupt->interrupt_enabled) {
-        vfio_epoll_wait(interrupt->vfio_epoll_fd, 10, interrupts.timeout_ms);
+        interrupt->irq->receive(interrupts.timeout);
     }
 
     struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;

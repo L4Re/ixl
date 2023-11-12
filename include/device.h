@@ -47,6 +47,8 @@ struct __attribute__((__packed__)) mac_address {
  */
 class Ixl_device {
 public:
+    /***                           Functions                              ***/
+
     /**
      * Returns the name of the driver.
      */
@@ -68,7 +70,7 @@ public:
 
     virtual void set_mac_addr(struct mac_address mac) = 0;
 
-    // calls ixy_tx_batch until all packets are queued with busy waiting
+    // calls tx_batch until all packets are queued with busy waiting
     void tx_batch_busy_wait(uint16_t queue_id, struct pkt_buf* bufs[],
                             uint32_t num_bufs) {
         uint32_t num_sent = 0;
@@ -127,6 +129,13 @@ protected:
      */
     void create_dma_space(void);
 
+    /**
+     * Retrieves the cap to the virtualized ICU assigned to the vbus that
+     * pci_dev is located on. This function needs to be called prior to any
+     * other IRQ-related setup routines.
+     */
+    void setup_icu_cap(void);
+
     /*                          Member variables                            */
 
     // TODO purge vfio stuff
@@ -136,7 +145,7 @@ protected:
     int         vfio_fd; // device fd
     struct      interrupts interrupts;
 
-    // Underlying vbus device handed over by L4
+    // Underlying vbus PCI device handed over by L4
     L4vbus::Pci_dev pci_dev;
 
     // DMA space created for this device (needed to make standard dataspaces

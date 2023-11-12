@@ -1,10 +1,20 @@
+/****************************************************************************
+ *
+ * Implementation of PCI-related functions on L4Re.
+ *
+ * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ */
+
+
+/****************************************************************************
+ *                                                                          *
+ *                           include statements                             *
+ *                                                                          *
+ ****************************************************************************/
+
+
 #include <assert.h>
-#include <errno.h>
-#include <linux/limits.h>
 #include <stdio.h>
-#include <sys/file.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include <l4/re/env>
@@ -17,8 +27,74 @@
 
 #include "pci.h"
 
+using namespace Ixl;
+
+/****************************************************************************
+ *                                                                          *
+ *                        static helper functions                           *
+ *                                                                          *
+ ****************************************************************************/
+
+
+/**
+ * Checks wether a PCI device has a certain capability present in its
+ * configuration space. If the capability is present and addr is not NULL,
+ * the address of the searched capability (i.e., its offset in the config
+ * space) is returned through addr.
+ *
+ * \param dev    The PCI device to check.
+ * \param cap_id The ID of the capability to check for.
+ * \param addr   The offset of the capability in the config space.
+ *
+ * \returns True if the capability is present, false otherwise.
+ */
+static bool check_pci_cap(L4vbus::Pci_dev &dev, uint8_t cap_id, uint32_t *addr){
+    uint32_t config;                // Content of PCI config register of dev
+
+    // Get the config register (offset 0x06 into the config space)
+    L4Re::chksys(dev.cfg_read(0x06, &config, 16));
+
+    // Check if the device has a capability list (Bit 4 is set)
+    if (config & 0x10) {
+        uint32_t cap_ptr;           // Pointer to next capability entry
+                                    // (offset in PCI config space)
+
+        // The first cap entry is at offset 0x34
+        L4Re::chksys(dev.cfg_read(0x34, &cap_ptr, 8));
+        // Mask off the two least significant bits as they are reserved
+        cap_ptr = cap_ptr & ~0x03;
+
+        while (cap_ptr != 0) {
+            uint32_t cap_id32;
+
+            L4Re::chksys(dev.cfg_read(cap_ptr, &cap_id32, 8));
+
+            // Cap ID for MSI-X is 0x11
+            if (cap_id32 == cap_id) {
+                if (addr != NULL)
+                    *addr = cap_ptr;
+
+                return true;
+            }
+
+            // The next cap offset is one Byte behind the ID
+            L4Re::chksys(dev.cfg_read(cap_ptr + 1, &cap_ptr, 8));
+            cap_ptr = cap_ptr & ~0x03;
+        }
+    }
+
+    return false;
+}
+
+/****************************************************************************
+ *                                                                          *
+ *                        function implementation                           *
+ *                                                                          *
+ ****************************************************************************/
+
+
 /* Compute the size of the I/O memory accessible through BAR0               */
-l4_uint64_t get_bar0_size(L4vbus::Pci_dev& dev) {
+l4_uint64_t Ixl::get_bar0_size(L4vbus::Pci_dev& dev) {
     // TODO: According to OSdev wiki, one should also disable the I/O and
     //       memory decode bytes in the command register before executing
     //       this operation...
@@ -72,7 +148,7 @@ l4_uint64_t get_bar0_size(L4vbus::Pci_dev& dev) {
 }
 
 /* Get the physical address of BAR0                                         */
-l4_uint64_t get_bar0_addr(L4vbus::Pci_dev& dev) {
+l4_uint64_t Ixl::get_bar0_addr(L4vbus::Pci_dev& dev) {
     l4_uint32_t lsb;
     l4_uint32_t msb;
 
@@ -95,7 +171,7 @@ l4_uint64_t get_bar0_addr(L4vbus::Pci_dev& dev) {
     return (((l4_uint64_t) msb) << 32 | lsb) & 0xfffffffffffff000UL;
 }
 
-void enable_dma(L4vbus::Pci_dev& dev) {
+void Ixl::enable_dma(L4vbus::Pci_dev& dev) {
     l4_uint32_t cmd_reg = 0;                  // Value of PCI command register
     
     // write to the command register (offset 4) in the PCIe config space
@@ -105,7 +181,7 @@ void enable_dma(L4vbus::Pci_dev& dev) {
     L4Re::chksys(dev.cfg_write(0x4, cmd_reg, 16));
 }
 
-uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev) {
+uint8_t* Ixl::pci_map_bar0(L4vbus::Pci_dev& dev) {
     l4_addr_t   iomem_addr;       // Address for mapping the I/O memory of BAR0
     l4_uint64_t iomem_size;       // Size of memory accessible through BAR0
     l4_uint64_t bar_addr;         // Physical address contained in BAR0
@@ -159,9 +235,137 @@ uint8_t* pci_map_bar0(L4vbus::Pci_dev& dev) {
     return (uint8_t *) iomem_addr;
 }
 
+/* Check if the device supports MSI-X                                       */
+bool Ixl::pcidev_supports_msix(L4vbus::Pci_dev &dev) {
+    return check_pci_cap(dev, 0x11, NULL);
+}
+
+/* Check if the device supports MSI                                         */
+bool Ixl::pcidev_supports_msi(L4vbus::Pci_dev &dev) {
+    return check_pci_cap(dev, 0x05, NULL);
+}
+
+/* Performs the initial setup of MSIs on a PCI device                       */
+void Ixl::setup_msi(L4vbus::Pci_dev &dev) {
+    uint32_t msi_cap_addr;              // Address of MSI capability
+    uint32_t msi_ctrl_reg;              // Contents of MSI control register
+    uint32_t mmc;                       // Multi-message capability of MSI
+
+    // Get the MSI capability address through a feature check
+    if (! check_pci_cap(dev, 0x05, &msi_cap_addr))
+        return;
+
+    L4Re::chksys(dev.cfg_read(msi_cap_addr + 2, &msi_ctrl_reg, 16));
+    mmc = msi_cap_addr & 0x0000000e;
+
+    // Set MME (multi-message enabled) to the same value as the MMC, i.e.,
+    // allocate the maximum number of MSIs for this device (clear MME first).
+    msi_ctrl_reg &= 0xffffff8f;
+    msi_ctrl_reg |= mmc << 3;
+
+    // Enable MSIs
+    msi_ctrl_reg |= 0x01;
+
+    // Write back the MSI configuration
+    L4Re::chksys(dev.cfg_write(msi_cap_addr + 2, msi_ctrl_reg, 16));
+}
+
+/* Enables the MSI no. irqnum on the PCI level.                             */
+void Ixl::pcidev_enable_msi(L4vbus::Pci_dev &dev, uint32_t,
+                            l4_icu_msi_info_t info) {
+    uint32_t msi_cap_addr;              // Address of MSI capability
+    uint32_t msi_ctrl_reg;              // Contents of MSI control register
+    uint32_t mmc;                       // Multi-message capability of MSI
+
+    // Get the MSI capability address through a feature check
+    if (! check_pci_cap(dev, 0x05, &msi_cap_addr))
+        return;
+
+    L4Re::chksys(dev.cfg_read(msi_cap_addr + 2, &msi_ctrl_reg, 16));
+    mmc = msi_cap_addr & 0x0000000e;
+
+    // We write the address as given by the info structure, and just clear the
+    // least significant bits according to the maximum number of supported MSIs.
+    L4Re::chksys(dev.cfg_write(msi_cap_addr + 4,
+                               info.msi_addr & 0xffffffff, 32));
+
+    // Check if the MSI register it 64 bit and proceed accordingly (bit 7)
+    if (msi_ctrl_reg & 0x00000080) {
+        L4Re::chksys(dev.cfg_write(msi_cap_addr + 8,
+                                   (uint32_t) (info.msi_addr >> 32), 32));
+        L4Re::chksys(dev.cfg_write(msi_cap_addr + 0xc,
+                                   info.msi_data & ~(mmc - 1), 16));
+    }
+    else {
+        L4Re::chksys(dev.cfg_write(msi_cap_addr + 8,
+                                   info.msi_data & ~(mmc - 1), 16));
+    }
+}
+
+/* Performs the initial setup of MSI-Xs on a PCI device                     */
+void Ixl::setup_msix(L4vbus::Pci_dev &dev) {
+    uint32_t msix_cap_addr;             // Address of MSI-X capability
+    uint32_t msix_ctrl_reg;             // Contents of MSI-X control register
+
+    // Get the MSI-X capability address through a feature check
+    if (! check_pci_cap(dev, 0x11, &msix_cap_addr))
+        return;
+
+    L4Re::chksys(dev.cfg_read(msix_cap_addr + 2, &msix_ctrl_reg, 16));
+
+    // Set the enabled bit of the ctrl register
+    msix_ctrl_reg |= 0x00008000;
+    // Clear the function mask bit of the ctrl register
+    msix_ctrl_reg &= 0xffffbfff;
+
+    // Write back the MSI-X configuration
+    L4Re::chksys(dev.cfg_write(msix_cap_addr + 2, msix_ctrl_reg, 16));
+}
+
+/* Retrieves information about the MSI-X table of a PCI device.             */
+void Ixl::pcidev_get_msix_info(L4vbus::Pci_dev &dev, uint32_t *bir,
+                               uint32_t *table_offs, uint32_t *table_size) {
+    uint32_t msix_cap_addr;         // Address of MSI-X capability
+    uint32_t msix_ctrl_reg;         // Contents of MSI-X control register
+
+    // Get the MSI-X capability address through a feature check
+    if (! check_pci_cap(dev, 0x11, &msix_cap_addr))
+        return;
+
+    // Get register contents.
+    L4Re::chksys(dev.cfg_read(msix_cap_addr + 2, &msix_ctrl_reg, 16));
+    *table_size = msix_ctrl_reg & 0x000007ff;        // Size is bits 0 - 10
+
+    L4Re::chksys(dev.cfg_read(msix_cap_addr + 4, table_offs, 32));
+    *bir = *table_offs & 0x7;               // Lowest three bits make up BIR
+    *table_offs &= ~((uint32_t) 0x07);      // Offset is 8-Byte aligned
+}
+
+/* Enables the MSI-X no. irqnum on the PCI level.                           */
+void Ixl::pcidev_enable_msix(uint32_t irqnum, l4_icu_msi_info_t info,
+                             uint8_t *bar_addr, uint32_t table_offs,
+                             uint32_t table_size) {
+    // Start address of table entry to modify (each entry is 16 B in size)
+    uint32_t reg = table_offs + irqnum * 16;
+
+    // Table size is (N - 1) encoded
+    if (irqnum > table_size) {
+        ixl_warn("Refusing to write out-of-bounds MSI-X table entry!");
+        return;
+    }
+
+    // Write the MSI-X table for the specified IRQ (addr is four-Byte aligned)
+    set_reg32(bar_addr, reg + 0, info.msi_addr & 0xfffffffc);
+    set_reg32(bar_addr, reg + 4, info.msi_addr >> 32);
+    set_reg32(bar_addr, reg + 8, info.msi_data);
+    // Unmask this MSI-X
+    clear_flags32(bar_addr, reg + 12, 0x00000001);
+}
+
 /* Acquires a PCI devices at a certain index on the "vbus" capability.      */
-L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
-                            uint32_t idx, uint8_t pci_class, uint8_t pci_sclass)
+L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
+                                 uint32_t idx, uint8_t pci_class,
+                                 uint8_t pci_sclass)
 {
     ixl_debug("Starting device discovery...");
     auto root = vbus->root();

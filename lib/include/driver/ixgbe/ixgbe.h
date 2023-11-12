@@ -111,19 +111,22 @@ private:
     /***                           Constructor                            ***/
     Ixgbe_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
                  bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
+        l4_timeout_s l4tos = l4_timeout_from_us(irq_timeout_ms * 1000);
+
         num_rx_queues = rx_qs;
         num_tx_queues = tx_qs;
 
         interrupts.interrupts_enabled = irq_enabled;
         interrupts.itr_rate           = itr_rate;
-        interrupts.timeout_ms         = irq_timeout_ms;
+        interrupts.timeout            = l4_timeout(l4tos, l4tos);
     
-        pci_dev  = dev;
+        pci_dev = dev;
 
         // Temporary hack to indicate absence of IRQ implementation
         if (irq_enabled) {
+            setup_icu_cap();
             ixl_error("IRQ feature currently not implemented.");
-            // setup_interrupts();
+            setup_interrupts();
         }
 
         // Map BAR0 region
@@ -245,7 +248,7 @@ private:
     void reset_and_init(void);
 
     /***                        Member variables                          ***/
-    uint8_t* addr;
+    uint8_t* addr = NULL;
     void*    rx_queues;
     void*    tx_queues;
 };
