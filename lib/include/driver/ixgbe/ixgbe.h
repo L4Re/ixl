@@ -222,7 +222,7 @@ private:
     void enable_interrupt(uint16_t queue_id);
 
     /**
-     * Setup interrupts by enabling VFIO interrupts.
+     * Setup interrupts by enabling MSI / MSI-X at the PCI card.
      * @param dev The device.
      */
     void setup_interrupts();

@@ -20,7 +20,6 @@
 #include <l4/re/error_helper>
 
 #include <l4/ixylon/interrupts.h>
-#include "libixy-vfio.h"
 #include <l4/ixylon/log.h>
 #include <l4/ixylon/stats.h>
 

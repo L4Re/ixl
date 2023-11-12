@@ -138,11 +138,8 @@ protected:
 
     /*                          Member variables                            */
 
-    // TODO purge vfio stuff
     uint16_t    num_rx_queues;
     uint16_t    num_tx_queues;
-    bool        vfio;
-    int         vfio_fd; // device fd
     struct      interrupts interrupts;
 
     // Underlying vbus PCI device handed over by L4

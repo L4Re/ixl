@@ -16,12 +16,6 @@
 
 using namespace Ixl;
 
-// TODO: Purge vfio stuff
-// we want one VFIO Container for all NICs, so every NIC can read from every
-// other NICs memory, especially the mempool. When not using the IOMMU / VFIO,
-// this variable is unused.
-volatile int VFIO_CONTAINER_FILE_DESCRIPTOR = -1;
-
 // allocate memory suitable for DMA access in huge pages
 struct dma_memory Ixl::memory_allocate_dma(Ixl_device& dev, size_t size) {
     // final DMA memory struct
@@ -163,14 +157,4 @@ void Ixl::pkt_buf_free(struct pkt_buf* buf) {
     // Try to update head if list was empty
     if (list_empty)
         mempool->queue_head.compare_exchange_weak(invalid, buf->mempool_idx);
-}
-
-// reads the global VFIO container
-int Ixl::get_vfio_container() {
-    return VFIO_CONTAINER_FILE_DESCRIPTOR;
-}
-
-// globally sets the VFIO container and returns the set value
-void Ixl::set_vfio_container(int fd) {
-    VFIO_CONTAINER_FILE_DESCRIPTOR = fd;
 }

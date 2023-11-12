@@ -24,8 +24,6 @@ struct interrupt_moving_avg {
 struct interrupt_queue {
     L4::Cap<L4::Irq> irq;       // Cap to L4 IRQ object
 
-    int vfio_event_fd;          // event fd
-    int vfio_epoll_fd;          // epoll fd
     bool interrupt_enabled;     // Whether interrupt for this queue is enabled or not
     uint64_t last_time_checked; // Last time the interrupt flag was checked
     uint64_t instr_counter;     // Instruction counter to avoid unnecessary calls to monotonic_time
@@ -42,7 +40,7 @@ struct interrupts {
     L4::Cap<L4::Icu> vicu;
 
     uint32_t itr_rate;               // The Interrupt Throttling Rate
-    struct interrupt_queue* queues; // Interrupt settings per queue
+    struct interrupt_queue* queues;  // Interrupt settings per queue
     uint8_t interrupt_type;          // MSI or MSIX
 
     // interrupt timeout in L4-specific representation

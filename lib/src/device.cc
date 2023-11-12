@@ -88,11 +88,7 @@ void Ixl_device::setup_icu_cap(void) {
 Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                                  uint32_t dev_idx, uint16_t rx_queues,
                                  uint16_t tx_queues, int irq_timeout) {
-    // Read PCI configuration space
-    // For VFIO, we could access the config space another way
-    // (VFIO_PCI_CONFIG_REGION_INDEX). This is not needed, though, because
-    // every config file should be world-readable, and here we
-    // only read the vendor and device id.
+    // Read PCI configuration space to obtain initial device information.
     uint32_t vendor_id;
     uint32_t device_id;
     
