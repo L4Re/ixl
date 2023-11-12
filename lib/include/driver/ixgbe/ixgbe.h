@@ -125,7 +125,7 @@ private:
         // Temporary hack to indicate absence of IRQ implementation
         if (irq_enabled) {
             setup_icu_cap();
-            ixl_error("IRQ feature currently not implemented.");
+            ixl_warn("IRQ feature currently not tested!");
             setup_interrupts();
         }
 
