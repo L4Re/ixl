@@ -136,11 +136,17 @@ protected:
      */
     void setup_icu_cap(void);
 
-    /*                          Member variables                            */
+    /***                        Member variables                          ***/
 
-    uint16_t    num_rx_queues;
-    uint16_t    num_tx_queues;
-    struct      interrupts interrupts;
+    // Memory address at which the I/O memory described in BAR0 got mapped.
+    uint8_t* addr = NULL;
+    
+    void*    rx_queues;
+    void*    tx_queues;
+
+    uint16_t num_rx_queues;
+    uint16_t num_tx_queues;
+    struct   interrupts interrupts;
 
     // Underlying vbus PCI device handed over by L4
     L4vbus::Pci_dev pci_dev;

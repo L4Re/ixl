@@ -215,12 +215,6 @@ private:
 
     /***                        Member variables                          ***/
     
-    // Memory address at which the I/O memory described in BAR0 got mapped.
-    uint8_t* addr = NULL;
-    
-    void*    rx_queues;
-    void*    tx_queues;
-
     // MAC address of this device
     struct mac_address mac_addr;
     // Does mac_addr contain a valid value?

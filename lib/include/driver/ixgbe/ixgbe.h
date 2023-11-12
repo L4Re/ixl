@@ -248,9 +248,6 @@ private:
     void reset_and_init(void);
 
     /***                        Member variables                          ***/
-    uint8_t* addr = NULL;
-    void*    rx_queues;
-    void*    tx_queues;
 };
 
 }
