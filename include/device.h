@@ -194,50 +194,6 @@ static inline void wait_set_reg32(const uint8_t* addr, int reg, uint32_t mask) {
     }
 }
 
-// getters/setters for pci io port resources
-
-static inline void write_io32(int fd, uint32_t value, size_t offset) {
-    if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
-        ixl_error("pwrite io resource");
-    __asm__ volatile("" : : : "memory");
-}
-
-static inline void write_io16(int fd, uint16_t value, size_t offset) {
-    if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
-        ixl_error("pwrite io resource");
-    __asm__ volatile("" : : : "memory");
-}
-
-static inline void write_io8(int fd, uint8_t value, size_t offset) {
-    if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
-        ixl_error("pwrite io resource");
-    __asm__ volatile("" : : : "memory");
-}
-
-static inline uint32_t read_io32(int fd, size_t offset) {
-    __asm__ volatile("" : : : "memory");
-    uint32_t temp;
-    if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))
-        ixl_error("pread io resource");
-    return temp;
-}
-
-static inline uint16_t read_io16(int fd, size_t offset) {
-    __asm__ volatile("" : : : "memory");
-    uint16_t temp;
-    if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))
-        ixl_error("pread io resource");
-    return temp;
-}
-
-static inline uint8_t read_io8(int fd, size_t offset) {
-    __asm__ volatile("" : : : "memory");
-    uint8_t temp;
-    if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))
-        ixl_error("pread io resource");
-    return temp;
-}
-
 }
 
 #endif // IXY_DEVICE_H
