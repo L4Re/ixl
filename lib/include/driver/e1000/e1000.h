@@ -144,10 +144,10 @@ private:
     
         pci_dev  = dev;
 
-        // Temporary hack to indicate absence of IRQ implementation
+        // Do the IRQ-related setup if requested by user
         if (irq_enabled) {
-            ixl_error("IRQ feature currently not implemented.");
-            // setup_interrupts();
+            setup_icu_cap();
+            setup_interrupts();
         }
 
         // Map BAR0 region
@@ -197,7 +197,14 @@ private:
         set_reg32(addr, E1000_IMC, 0xffffffff); 
     }
 
-    void setup_interrupts();
+    /**
+     * Enables the MSI for receive events. We will configure the NIC in a way
+     * that an MSI is generated for each packet received, while adhering to
+     * the ITR limit that the user can specify upon initializing the driver.
+     */
+    void enable_rx_interrupt(void);
+
+    void setup_interrupts(void);
 
     void init_link(void);
 

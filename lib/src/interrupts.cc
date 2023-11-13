@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 
+#include <l4/re/env>
 #include <l4/re/error_helper>
 
 #include <l4/ixylon/interrupts.h>
@@ -70,6 +71,10 @@ void Ixl::create_and_bind_irq(unsigned int irqnum, L4::Cap<L4::Irq> *irq,
                               L4::Cap<L4::Icu> icu) {
     *irq = L4Re::chkcap(L4Re::Util::cap_alloc.alloc<L4::Irq>(),
                         "Failed to allocated IRQ capability.");
+
+    // Create an IRQ kernel object so that the cap allocated above points
+    // to something meaningful. If this step is omitted, bind will fail.
+    L4Re::chksys(L4Re::Env::env()->factory()->create(*irq));
 
     L4Re::chksys(l4_error(icu->bind(irqnum, *irq)),
                  "Binding interrupt to ICU.");

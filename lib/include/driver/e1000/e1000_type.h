@@ -75,6 +75,8 @@ struct e1000_tx_desc {
 #define E1000_EERD      0x00014     /* EEPROM read                          */
 
 #define E1000_ICR       0x000C0     /* IRQ cause read                       */
+#define E1000_ITR       0x000C4     /* IRQ throttling register              */
+#define E1000_IMS       0x000D0     /* IRQ mask set register                */
 #define E1000_IMC       0x000D8     /* IRQ mask clear                       */
 
 #define E1000_RCTL      0x00100     /* RX control                           */
@@ -85,6 +87,7 @@ struct e1000_tx_desc {
 #define E1000_RDLEN     0x02808     /* RX descr. length                     */
 #define E1000_RDH       0x02810     /* RX descr. head                       */
 #define E1000_RDT       0x02818     /* RX descr. tail                       */
+#define E1000_RDTR      0x02820     /* RX delay timer register              */
 
 #define E1000_TDBAL     0x03800     /* TX descr. base addr, low             */
 #define E1000_TDBAH     0x03804     /* TX descr. base addr, high            */
@@ -122,6 +125,9 @@ struct e1000_tx_desc {
 #define E1000_STATUS_SPEED_10   0x00000000 /* Link speed 10 Mbps            */
 #define E1000_STATUS_SPEED_100  0x00000040 /* Link speed 100 Mbps           */
 #define E1000_STATUS_SPEED_1000 0x00000080 /* Link speed 1000 Mbps          */
+
+// E1000 interrupt conditions
+#define E1000_ICR_RXT0        0x00000080   /* RX timer IRQ (ring 0)         */
 
 // E1000 EERD register
 #define E1000_EERD_START      0x00000001

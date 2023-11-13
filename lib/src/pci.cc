@@ -53,21 +53,25 @@ static bool check_pci_cap(L4vbus::Pci_dev &dev, uint8_t cap_id, uint32_t *addr){
 
     // Get the config register (offset 0x06 into the config space)
     L4Re::chksys(dev.cfg_read(0x06, &config, 16));
+    ixl_debug("Checking for cap %u", cap_id);
+    ixl_debug("config = 0x%x", config);
 
     // Check if the device has a capability list (Bit 4 is set)
     if (config & 0x10) {
         uint32_t cap_ptr;           // Pointer to next capability entry
                                     // (offset in PCI config space)
 
+        ixl_debug("dev has cap list");
         // The first cap entry is at offset 0x34
         L4Re::chksys(dev.cfg_read(0x34, &cap_ptr, 8));
         // Mask off the two least significant bits as they are reserved
         cap_ptr = cap_ptr & ~0x03;
 
         while (cap_ptr != 0) {
-            uint32_t cap_id32;
+            uint32_t cap_id32 = 0;
 
             L4Re::chksys(dev.cfg_read(cap_ptr, &cap_id32, 8));
+            ixl_debug("cap ptr = %u, id = %u", cap_ptr, cap_id32);
 
             // Cap ID for MSI-X is 0x11
             if (cap_id32 == cap_id) {

@@ -6,7 +6,7 @@ Io.add_vbusses
 {
     ethdevs = Io.Vi.System_bus(function ()
         -- Just a preliminary number
-        Property.num_msis = 4;
+        Property.num_msis = 8;
         PCI0 = Io.Vi.PCI_bus(function ()
             pci_hd = wrap(Io.system_bus():match("PCI/network"));
         end);

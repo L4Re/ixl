@@ -70,17 +70,16 @@ void Ixl_device::setup_icu_cap(void) {
     if (icudev.vicu(interrupts.vicu) != 0)
         ixl_error("Failed to request ICU capability.");
 
-    // Do some sanity checks. We require MSI(X) support. Also, we want to have
+    // Do some sanity checks. If there is MSI(X) support, we want to have
     // a separate IRQ per receive queue.
     if (l4_error(interrupts.vicu->info(&icu_info)) < 0)
         ixl_error("Failed to get ICU info");
 
-    if (! (icu_info.features & L4::Icu::F_msi))
-        ixl_error("ICU does not support MSI.");
-
-    if (icu_info.nr_msis < num_rx_queues) {
-        ixl_error("ICU supports only %u MSIs, but driver needs %u.",
-                  icu_info.nr_msis, num_rx_queues);
+    if (icu_info.features & L4::Icu::F_msi) {
+        if (icu_info.nr_msis < num_rx_queues) {
+            ixl_error("ICU supports only %u MSIs, but driver needs %u.",
+                      icu_info.nr_msis, num_rx_queues);
+        }
     }
 }
 

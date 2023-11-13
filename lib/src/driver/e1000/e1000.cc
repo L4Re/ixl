@@ -6,9 +6,33 @@
  *                                                                           * 
  *****************************************************************************/
 
+
+#include <l4/re/env>
+#include <l4/re/error_helper>
+
 #include "driver/e1000/e1000.h"
 
 using namespace Ixl;
+
+/****************************************************************************
+ *                                                                          *
+ *                        function implementation                           *
+ *                                                                          *
+ ****************************************************************************/
+
+
+/* Enables the receive interrupt of the NIC.                                */
+void E1000_device::enable_rx_interrupt(void) {
+    // Limit the ITR to prevent IRQ storms
+    set_reg32(addr, E1000_ITR, interrupts.itr_rate & 0x0000ffff);
+
+    // Configure the NIC to fire an MSI every time a packet is received
+    set_reg32(addr, E1000_RDTR, 0);
+
+    // Unmask and enable the receive timer interrupt cause
+    clear_flags32(addr, E1000_IMC, E1000_ICR_RXT0);
+    set_reg32(addr, E1000_IMS, E1000_ICR_RXT0);
+}
 
 /* Read data from the NIC's EEPROM                                          */
 int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
@@ -43,8 +67,67 @@ int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
     return 0;
 }
 
-void E1000_device::setup_interrupts() {
-    ixl_error("Interrupts are currently not supported.");
+void E1000_device::setup_interrupts(void) {
+    if (! interrupts.interrupts_enabled) {
+        return;
+    }
+
+    interrupts.queues = (struct interrupt_queue*) malloc(num_rx_queues * sizeof(struct interrupt_queue));
+
+    // Determine type of interrupt available at the device (e1000 does not
+    // supprot MSI-X). Note also that there is only a single receive queue
+    // (an in fact also just a single IRQ) on an e1000 card.
+    if (pcidev_supports_msi(pci_dev)) {
+        l4_icu_msi_info_t msi_info;
+
+        ixl_info("Using MSI interrupts...");
+        interrupts.interrupt_type = IXL_IRQ_MSI;
+        setup_msi(pci_dev);
+
+        // Create and bind the IRQ to the vICU of the PCI device's bus
+        create_and_bind_irq(0, &interrupts.queues[0].irq, interrupts.vicu);
+
+        // Get the MSI info
+        uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
+        L4Re::chksys(interrupts.vicu->msi_info(0, source, &msi_info),
+                     "Failed to retrieve MSI info.");
+        ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
+                  0, msi_info.msi_addr, msi_info.msi_data);
+
+        // PCI-enable of MSI
+        pcidev_enable_msi(pci_dev, 0, msi_info);
+
+        // Lastly, unmask the IRQ
+        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(0), l4_utcb()),
+                     "Failed to unmask interrupt");
+        ixl_debug("Attached to MSI %u", 0);
+
+        interrupts.queues[0].moving_avg.length = 0;
+        interrupts.queues[0].moving_avg.index  = 0;
+        interrupts.queues[0].interval = INTERRUPT_INITIAL_INTERVAL;
+    }
+    else {
+        // Interrupt config for legacy interrupts
+        unsigned char trigger  = 0;         // Trigger type of IRQ
+        unsigned char polarity = 0;         // Polarity of IRQ (hi/lo)
+
+        int irq = -1;   // IRQ line allocated by the PCI device
+
+        // We should never reach this code though, as the presence of at
+        // least MSIs should have been asserted in setup_icu_cap()
+        interrupts.interrupt_type = IXL_IRQ_LEGACY;
+        ixl_info("Device does not support MSIs. Trying legacy interrupts...");
+
+        irq = L4Re::chksys(pci_dev.irq_enable(&trigger, &polarity),
+                           "Failed to enable legacy interrupt.");
+
+        // Create and bind the IRQ to the vICU of the PCI device's bus
+        create_and_bind_irq(irq, &interrupts.queues[0].irq, interrupts.vicu);
+
+        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(irq), l4_utcb()),
+                     "Failed to unmask interrupt");
+        ixl_info("Attached to legacy IRQ %u", irq);
+    }
 }
 
 void E1000_device::init_link(void) {
@@ -266,7 +349,8 @@ void E1000_device::reset_and_init(void) {
     start_tx_queue(0);
     usleep(1000);
 
-    // Here, we now would enable IRQs...
+    // Enable IRQ for receiving packets
+    enable_rx_interrupt();
 
     // Enable promiscuous mode by default (facilitates testing)
     set_promisc(true);
@@ -277,7 +361,26 @@ void E1000_device::reset_and_init(void) {
 
 uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[], 
                                 uint32_t num_bufs) {
-    // TODO: Wait for an IRQ here, as done in the original ixy driver?
+    struct interrupt_queue* interrupt = NULL;
+    bool interrupts_enabled = interrupts.interrupts_enabled;
+
+    // For non-debug builds insert an additional bounds check for the queue_id
+    l4_assert(queue_id == 0);
+
+    if (interrupts_enabled) {
+        interrupt = &interrupts.queues[queue_id];
+    }
+
+    if (interrupts_enabled && interrupt->interrupt_enabled) {
+        uint32_t icr;           // Value of interrupt cause register
+
+        interrupt->irq->receive(interrupts.timeout);
+        icr = get_reg32(addr, E1000_ICR);
+
+        // Check that we receive the right IRQ, if not return directly
+        if (! (icr & E1000_ICR_RXT0))
+            return 0;
+    }
 
     struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;
 
@@ -339,6 +442,28 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // RDT=RDH means queue is full
         set_reg32(addr, E1000_RDT, last_rx_index);
         queue->rx_index = rx_index;
+    }
+
+    // Perform IRQ bookkeeping
+    if (interrupts_enabled) {
+        interrupt->rx_pkts += buf_index;
+
+        if ((interrupt->instr_counter++ & 0xFFF) == 0) {
+            bool int_en = interrupt->interrupt_enabled;
+            uint64_t diff = device_stats::monotonic_time() - interrupt->last_time_checked;
+            if (diff > interrupt->interval) {
+                // every second
+                check_interrupt(interrupt, diff, buf_index, num_bufs);
+            }
+
+            if (int_en != interrupt->interrupt_enabled) {
+                if (interrupt->interrupt_enabled) {
+                    enable_rx_interrupt();
+                } else {
+                    disable_interrupts();
+                }
+            }
+        }
     }
 
     // number of packets stored in bufs; buf_index points to the next index
