@@ -146,18 +146,18 @@ private:
 
         pci_dev  = dev;
 
-        // Do the IRQ-related setup if requested by user
-        if (irq_enabled) {
-            setup_icu_cap();
-            setup_interrupts();
-        }
-
         // Map BAR0 region
         ixl_debug("Mapping BAR0 I/O memory...");
         addr = pci_map_bar0(pci_dev);
 
         // Create a DMA space for this device
         create_dma_space();
+
+        // Do the IRQ-related setup if requested by user
+        if (irq_enabled) {
+            setup_icu_cap();
+            setup_interrupts();
+        }
 
         rx_queues = calloc(rx_qs, sizeof(struct igb_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
         tx_queues = calloc(tx_qs, sizeof(struct igb_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
