@@ -186,7 +186,7 @@ private:
      * See also section 13.4.17
      */
     void clear_interrupts(void) {
-        get_reg32(addr, IGB_ICR);
+        // This is a noop with MSI-X as used for Igb
     }
 
     /**
@@ -197,14 +197,26 @@ private:
     void disable_interrupts(void) {
         ixl_debug("Masking off all IRQs for Igb device");
         set_reg32(addr, IGB_IMC, 0xffffffff);
+        set_reg32(addr, IGB_EIMC, 0xffffffff);
     }
 
     /**
-     * Enables the MSI for receive events. We will configure the NIC in a way
+     * Enables an MSI for receive events. We will configure the NIC in a way
      * that an MSI is generated for each packet received, while adhering to
      * the ITR limit that the user can specify upon initializing the driver.
+     *
+     * \param qid Index of the queue for that the corresponding MSI-X shall
+     *            be enabled.
      */
-    void enable_rx_interrupt(void);
+    void enable_rx_interrupt(uint16_t qid);
+
+    /**
+     * Disables an MSI for receive events.
+     *
+     * \param qid Index of the RX queue for that the corresponding MSI-X shall
+     *            be disabled.
+     */
+    void disable_rx_interrupt(uint16_t qid);
 
     void setup_interrupts(void);
 

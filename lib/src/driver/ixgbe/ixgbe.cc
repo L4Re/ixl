@@ -205,8 +205,7 @@ void Ixgbe_device::setup_interrupts(void) {
         }
     }
     else {
-        // We should never reach this code though, as the presence of at
-        // least MSIs should have been asserted in setup_icu_cap()
+        // We do want to have MSIs, otherwise disable IRQ support entirely.
         interrupts.interrupt_type = IXL_IRQ_LEGACY;
 
         ixl_warn("Device does not support MSIs. Disabling interrupts...");

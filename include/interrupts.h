@@ -25,6 +25,7 @@ struct interrupt_queue {
     L4::Cap<L4::Irq> irq;       // Cap to L4 IRQ object
 
     bool interrupt_enabled;     // Whether interrupt for this queue is enabled or not
+    uint32_t msi_vec;           // MSI vector used for this IRQ (or 0 for legacy)
     uint64_t last_time_checked; // Last time the interrupt flag was checked
     uint64_t instr_counter;     // Instruction counter to avoid unnecessary calls to monotonic_time
     uint64_t rx_pkts;           // The number of received packets since the last check

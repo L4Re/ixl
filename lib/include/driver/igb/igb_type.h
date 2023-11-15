@@ -77,7 +77,15 @@ struct igb_tx_desc {
 #define IGB_IMC       0x000D8       /* IRQ mask clear                       */
 
 #define IGB_RCTL      0x00100       /* RX control                           */
+#define IGB_SRIOV     0x00168       /* SR-IOV status and control register   */
 #define IGB_TCTL      0x00400       /* RX control                           */
+
+#define IGB_GPIE      0x01514       /* General purpose IRQ enable           */
+#define IGB_EIMS      0x01524       /* Extended IRQ mask set                */
+#define IGB_EIMC      0x01528       /* Extended IRQ mask clear              */
+#define IGB_EIAC      0x0152C       /* Extended IRQ auto clear              */
+#define IGB_EITR      0x01680       /* Extended IRQ throttle rate (base)    */
+#define IGB_IVAR0     0x01700       /* IRQ vector allocation register 0     */
 
 #define IGB_RDBAL     0x02800       /* RX descr. base addr, low             */
 #define IGB_RDBAH     0x02804       /* RX descr. base addr, high            */
@@ -135,6 +143,9 @@ struct igb_tx_desc {
 #define IGB_EERD_ADDR_SHIFT 2
 #define IGB_EERD_DATA_SHIFT 16
 
+// Igb SR-IOV control register
+#define IGB_SRIOV_EN      0x00000001    /* SR-IOV enable                    */
+
 // Igb receive control register
 #define IGB_RCTL_EN       0x00000002    /* Enable RX path                   */
 #define IGB_RCTL_UPE      0x00000008    /* Unicast promiscuous mode enable  */
@@ -152,6 +163,9 @@ struct igb_tx_desc {
 #define IGB_TCTL_EN       0x00000002    /* Enable TX path                   */
 #define IGB_TCTL_PSP      0x00000008    /* Pad short packets                */
 #define IGB_TCTL_CT       0x00000ff0    /* Collision threshold bitmask      */
+
+// Igb GPIE register
+#define IGB_GPIE_MMSIX    0x00000010    /* Multiple MSI-X enable            */
 
 // Igb transmit descriptor control register
 #define IGB_TXDCTL_EN     0x02000000    /* Transmit queue enable            */

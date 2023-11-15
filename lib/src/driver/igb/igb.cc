@@ -21,17 +21,26 @@ using namespace Ixl;
  ****************************************************************************/
 
 
-/* Enables the receive interrupt of the NIC.                                */
-void Igb_device::enable_rx_interrupt(void) {
-    // Limit the ITR to prevent IRQ storms
-    set_reg32(addr, IGB_ITR, interrupts.itr_rate & 0x0000ffff);
+/* Enables a receive interrupt of the NIC.                                  */
+void Igb_device::enable_rx_interrupt(uint16_t qid) {
+    uint32_t msi_vec = interrupts.queues[qid].msi_vec;
 
-    // Configure the NIC to fire an MSI every time a packet is received
-    set_reg32(addr, IGB_RDTR, 0);
+    // Limit the ITR to prevent IRQ storms
+    set_reg32(addr, IGB_EITR + 4 * msi_vec,
+              (interrupts.itr_rate & 0x00001fff) << 2);
 
     // Unmask and enable the receive timer interrupt cause
-    clear_flags32(addr, IGB_IMC, IGB_ICR_RXT0);
-    set_reg32(addr, IGB_IMS, IGB_ICR_RXT0);
+    clear_flags32(addr, IGB_EIMC, 1 << msi_vec);
+    set_flags32(addr, IGB_EIMS, 1 << msi_vec);
+}
+
+/* Disables a receive interrupt of the NIC.                                 */
+void Igb_device::disable_rx_interrupt(uint16_t qid) {
+    uint32_t msi_vec = interrupts.queues[qid].msi_vec;
+
+    // Unmask and enable the receive timer interrupt cause
+    set_flags32(addr, IGB_EIMC, 1 << msi_vec);
+    clear_flags32(addr, IGB_EIMS, 1 << msi_vec);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -77,60 +86,79 @@ void Igb_device::setup_interrupts(void) {
     // FIXME: We should rely on MSI-X / MSI only for Igb devices, also these
     //        NIC have more than one interrupt available
     //
-    // Determine type of interrupt available at the device (e1000 does not
-    // supprot MSI-X). Note also that there is only a single receive queue
-    // (an in fact also just a single IRQ) on an e1000 card.
-    if (pcidev_supports_msi(pci_dev)) {
-        l4_icu_msi_info_t msi_info;
+    // Determine type of interrupt available at the device. We will only go
+    // with MSI-X in non-SR-IOV mode.
+    if (pcidev_supports_msix(pci_dev)) {
+        uint32_t bir;               // BAR location of MSI-X table
+        uint32_t table_offs;        // Offset of MSI-X table in BAR
+        uint32_t table_size;        // Size of MSI-X table
+        uint32_t ivar;              // Content of IVAR register
 
-        ixl_info("Using MSI interrupts...");
-        interrupts.interrupt_type = IXL_IRQ_MSI;
-        setup_msi(pci_dev);
+        ixl_info("Using MSI-X interrupts...");
+        interrupts.interrupt_type = IXL_IRQ_MSIX;
+        setup_msix(pci_dev);
 
-        // Create and bind the IRQ to the vICU of the PCI device's bus
-        create_and_bind_irq(0, &interrupts.queues[0].irq, interrupts.vicu);
+        pcidev_get_msix_info(pci_dev, &bir, &table_offs, &table_size);
+        // FIXME: Right now we rely on the MSI-X table being located in BAR 0
+        if (bir != 0) {
+            ixl_error("Can not access MSI-X table in BAR %u.", bir);
+        }
 
-        // Get the MSI info
-        uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
-        L4Re::chksys(interrupts.vicu->msi_info(0, source, &msi_info),
-                     "Failed to retrieve MSI info.");
-        ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
-                  0, msi_info.msi_addr, msi_info.msi_data);
+        // Configure the NIC to use multiple MSI-X mode (one IRQ per queue)
+        // Also ensure that SR-IOV is disabled.
+        clear_flags32(addr, IGB_SRIOV, IGB_SRIOV_EN);
+        set_flags32(addr, IGB_GPIE, IGB_GPIE_MMSIX);
 
-        // PCI-enable of MSI
-        pcidev_enable_msi(pci_dev, 0, msi_info);
+        for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
+            unsigned int      msi_vec;     // Vector assigned to this RX queue
+            l4_icu_msi_info_t msi_info;
 
-        // Lastly, unmask the IRQ
-        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(0), l4_utcb()),
-                     "Failed to unmask interrupt");
-        ixl_debug("Attached to MSI %u", 0);
+            // Get the assigned IRQ vector from the IVAR reg, see also sections
+            // 7.3.2 and 8.8.15 of the I350 programmers manual
+            ivar = get_reg32(addr, IGB_IVAR0 + 4 * (rq / 2));
 
-        interrupts.queues[0].moving_avg.length = 0;
-        interrupts.queues[0].moving_avg.index  = 0;
-        interrupts.queues[0].interval = INTERRUPT_INITIAL_INTERVAL;
+            if ((rq % 2) == 0)
+                msi_vec = ivar & 0x0000001f;
+            else
+                msi_vec = ivar & 0x001f0000;
+
+            // NIC only allows for MSI-X vectors between 0 and 24
+            if (msi_vec > 24)
+                ixl_error("Obtained bad MSI-X vector %u from IVAR.", msi_vec);
+
+            // Create and bind the IRQ to the vICU of the PCI device's bus
+            create_and_bind_irq(msi_vec, &interrupts.queues[rq].irq,
+                                interrupts.vicu);
+
+            // Get the MSI info
+            uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
+            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+                         "Failed to retrieve MSI info.");
+            ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
+                      msi_vec, msi_info.msi_addr, msi_info.msi_data);
+
+            // PCI-enable of MSI-X
+            pcidev_enable_msix(msi_vec, msi_info, addr, table_offs, table_size);
+
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+                         "Failed to unmask interrupt");
+            ixl_debug("Attached to MSI-X %u", msi_vec);
+
+            interrupts.queues[rq].moving_avg.length = 0;
+            interrupts.queues[rq].moving_avg.index  = 0;
+            interrupts.queues[rq].msi_vec           = msi_vec;
+            interrupts.queues[rq].interval = INTERRUPT_INITIAL_INTERVAL;
+        }
     }
     else {
-        // Interrupt config for legacy interrupts
-        unsigned char trigger  = 0;         // Trigger type of IRQ
-        unsigned char polarity = 0;         // Polarity of IRQ (hi/lo)
-
-        int irq = -1;   // IRQ line allocated by the PCI device
-
-        // We should never reach this code though, as the presence of at
-        // least MSIs should have been asserted in setup_icu_cap()
+        // Disable IRQs completely if MSI-X is not present
         interrupts.interrupt_type = IXL_IRQ_LEGACY;
-        ixl_info("Device does not support MSIs. Trying legacy interrupts...");
 
-        irq = L4Re::chksys(pci_dev.irq_enable(&trigger, &polarity),
-                           "Failed to enable legacy interrupt.");
-
-        // Create and bind the IRQ to the vICU of the PCI device's bus
-        create_and_bind_irq(irq, &interrupts.queues[0].irq, interrupts.vicu);
-
-        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(irq), l4_utcb()),
-                     "Failed to unmask interrupt");
-        ixl_info("Attached to legacy IRQ %u", irq);
+        ixl_warn("Device does not support MSIs. Disabling interrupts...");
+        interrupts.interrupts_enabled = false;
+        return;
     }
+
 }
 
 void Igb_device::init_link(void) {
@@ -376,8 +404,13 @@ void Igb_device::reset_and_init(void) {
     usleep(1000);
 
     // Enable IRQ for receiving packets
-    if (interrupts.interrupts_enabled)
-        enable_rx_interrupt();
+    if (interrupts.interrupts_enabled) {
+        // Enable auto-clearing for all possible (25) MSIs
+        set_reg32(addr, IGB_EIAC, 0x01ffffff);
+
+        // For now, only enable the IRQ of the first receive queue
+        enable_rx_interrupt(0);
+    }
 
     // Enable promiscuous mode by default (facilitates testing)
     set_promisc(true);
@@ -399,14 +432,10 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     }
 
     if (interrupts_enabled && interrupt->interrupt_enabled) {
-        uint32_t icr;           // Value of interrupt cause register
-
+        // We only listen on IRQs caused by this RQ, so nothing to do
+        // afterwards as auto clearing is enabled
+        ixl_debug("waiting for irq");
         interrupt->irq->receive(interrupts.timeout);
-        icr = get_reg32(addr, IGB_ICR);
-
-        // Check that we receive the right IRQ, if not return directly
-        if (! (icr & IGB_ICR_RXT0))
-            return 0;
     }
 
     struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + queue_id;
@@ -485,9 +514,9 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
             if (int_en != interrupt->interrupt_enabled) {
                 if (interrupt->interrupt_enabled) {
-                    enable_rx_interrupt();
+                    enable_rx_interrupt(queue_id);
                 } else {
-                    disable_interrupts();
+                    disable_rx_interrupt(queue_id);
                 }
             }
         }
