@@ -24,14 +24,14 @@ using namespace Ixl;
 /* Enables the receive interrupt of the NIC.                                */
 void E1000_device::enable_rx_interrupt(void) {
     // Limit the ITR to prevent IRQ storms
-    set_reg32(addr, E1000_ITR, interrupts.itr_rate & 0x0000ffff);
+    set_reg32(baddr[0], E1000_ITR, interrupts.itr_rate & 0x0000ffff);
 
     // Configure the NIC to fire an MSI every time a packet is received
-    set_reg32(addr, E1000_RDTR, 0);
+    set_reg32(baddr[0], E1000_RDTR, 0);
 
     // Unmask and enable the receive timer interrupt cause
-    clear_flags32(addr, E1000_IMC, E1000_ICR_RXT0);
-    set_reg32(addr, E1000_IMS, E1000_ICR_RXT0);
+    clear_flags32(baddr[0], E1000_IMC, E1000_ICR_RXT0);
+    set_reg32(baddr[0], E1000_IMS, E1000_ICR_RXT0);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -45,11 +45,11 @@ int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
         
         // Trigger the EEPROM read by writing the EERD register, then wait
         // for the result to show up
-        set_reg32(addr, E1000_EERD, reg_value);
+        set_reg32(baddr[0], E1000_EERD, reg_value);
         
         for (j = 0; j < EEPROM_MAX_WAIT_MS; j++) {
             usleep(1000);
-            reg_value = get_reg32(addr, E1000_EERD);
+            reg_value = get_reg32(baddr[0], E1000_EERD);
 
             // Success is indicated via a bit flag
             if (reg_value & E1000_EERD_DONE)
@@ -140,15 +140,15 @@ void E1000_device::start_rx_queue(int queue_id) {
 
     // Merely kicks of the RX part by setting the RX enabled bit in RCTL
     // Also enables reception of broadcast frames (BAM)
-    uint32_t rctl = get_reg32(addr, E1000_RCTL);
-    set_reg32(addr, E1000_RCTL, rctl | E1000_RCTL_EN | E1000_RCTL_BAM);
+    uint32_t rctl = get_reg32(baddr[0], E1000_RCTL);
+    set_reg32(baddr[0], E1000_RCTL, rctl | E1000_RCTL_EN | E1000_RCTL_BAM);
 }
 
 /* Kicks of the TX part by configuring the TCTL register accordingly        */
 void E1000_device::start_tx_queue(int queue_id) {
     (void) queue_id;
 
-    uint32_t tctl = get_reg32(addr, E1000_TCTL);
+    uint32_t tctl = get_reg32(baddr[0], E1000_TCTL);
     
     // Clear collision threshold and collision distance bitmask
     tctl &= ~(E1000_TCTL_CT | E1000_TCTL_COLD);
@@ -159,7 +159,7 @@ void E1000_device::start_tx_queue(int queue_id) {
     tctl |= E1000_COLLISION_DISTANCE << E1000_COLD_SHIFT;
 
     // Enable TX queue, enable padding of short packets
-    set_reg32(addr, E1000_TCTL, tctl | E1000_TCTL_EN | E1000_TCTL_PSP);
+    set_reg32(baddr[0], E1000_TCTL, tctl | E1000_TCTL_EN | E1000_TCTL_PSP);
 }
 
 void E1000_device::init_rx(void) {
@@ -223,19 +223,19 @@ void E1000_device::init_rx(void) {
         }
 
         // tell the device where it can write to (its iova, so DMA addrs)
-        set_reg32(addr, E1000_RDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
-        set_reg32(addr, E1000_RDBAH, (uint32_t) (mem.phy >> 32));
-        set_reg32(addr, E1000_RDLEN, ring_size_bytes);
-        set_reg32(addr, E1000_RDH, 0);
-        set_reg32(addr, E1000_RDT, queue->num_entries - 1);
+        set_reg32(baddr[0], E1000_RDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
+        set_reg32(baddr[0], E1000_RDBAH, (uint32_t) (mem.phy >> 32));
+        set_reg32(baddr[0], E1000_RDLEN, ring_size_bytes);
+        set_reg32(baddr[0], E1000_RDH, 0);
+        set_reg32(baddr[0], E1000_RDT, queue->num_entries - 1);
         ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
         ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
     }
 
     // Enable checksum offloading for received UCP/TCP packets
-    uint32_t crc_offl_reg = get_reg32(addr, E1000_RXCSUM);
+    uint32_t crc_offl_reg = get_reg32(baddr[0], E1000_RXCSUM);
     crc_offl_reg |= E1000_RXCSUM_TUOFL;
-    set_reg32(addr, E1000_RXCSUM, crc_offl_reg);
+    set_reg32(baddr[0], E1000_RXCSUM, crc_offl_reg);
 }
 
 void E1000_device::init_tx(void) {
@@ -250,15 +250,15 @@ void E1000_device::init_tx(void) {
         memset(mem.virt, -1, ring_size_bytes);
 
         // tell the device where it can write to (its iova, so DMA addrs)
-        set_reg32(addr, E1000_TDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
-        set_reg32(addr, E1000_TDBAH, (uint32_t) (mem.phy >> 32));
-        set_reg32(addr, E1000_TDLEN, ring_size_bytes);
+        set_reg32(baddr[0], E1000_TDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
+        set_reg32(baddr[0], E1000_TDBAH, (uint32_t) (mem.phy >> 32));
+        set_reg32(baddr[0], E1000_TDLEN, ring_size_bytes);
         ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
         ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
 
         // Init TX queue to empty
-        set_reg32(addr, E1000_TDH, 0);
-        set_reg32(addr, E1000_TDT, 0);
+        set_reg32(baddr[0], E1000_TDH, 0);
+        set_reg32(baddr[0], E1000_TDT, 0);
 
         // Keep a reference to mem in the queue, otherwise the object will go
         // out of scope, leading to the revocation of the backing capability
@@ -294,17 +294,17 @@ void E1000_device::reset_and_init(void) {
 
     // Stop receive and transmit units, wait for pending transactions to
     // complete
-    set_reg32(addr, E1000_RCTL, 0);
-    set_reg32(addr, E1000_TCTL, E1000_TCTL_PSP);
+    set_reg32(baddr[0], E1000_RCTL, 0);
+    set_reg32(baddr[0], E1000_TCTL, E1000_TCTL_PSP);
     usleep(10000);
 
     // Issue the reset command (done by setting the reset bit in the ctrl reg)
-    uint32_t ctrl_reg = get_reg32(addr, E1000_CTRL);
+    uint32_t ctrl_reg = get_reg32(baddr[0], E1000_CTRL);
     
     // Set automatic link speed detection and force link to come up
     ctrl_reg |= E1000_CTRL_SLU | E1000_CTRL_ASDE;
     ctrl_reg &= ~(E1000_CTRL_LRST | E1000_CTRL_FRCSPD | E1000_CTRL_FRCDPX);
-    set_reg32(addr, E1000_CTRL, ctrl_reg | E1000_CTRL_RST);
+    set_reg32(baddr[0], E1000_CTRL, ctrl_reg | E1000_CTRL_RST);
     // Wait for NIC to read default settings from EEPROM
     usleep(5000);
 
@@ -331,8 +331,8 @@ void E1000_device::reset_and_init(void) {
     // Mark RAR address entry valid
     rar_hi |= E1000_RAH_AV;
 
-    set_reg32(addr, E1000_RA, rar_lo);
-    set_reg32(addr, E1000_RA + 4, rar_hi);
+    set_reg32(baddr[0], E1000_RA, rar_lo);
+    set_reg32(baddr[0], E1000_RA + 4, rar_hi);
 
     // Normally, we should clear the rest of the RAR table here. Let's see
     // whether we can skip this for now...
@@ -375,7 +375,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         uint32_t icr;           // Value of interrupt cause register
 
         interrupt->irq->receive(interrupts.timeout);
-        icr = get_reg32(addr, E1000_ICR);
+        icr = get_reg32(baddr[0], E1000_ICR);
 
         // Check that we receive the right IRQ, if not return directly
         if (! (icr & E1000_ICR_RXT0))
@@ -440,7 +440,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // this is intentionally off by one, otherwise we'd set RDT=RDH if 
         // we are receiving faster than packets are coming in
         // RDT=RDH means queue is full
-        set_reg32(addr, E1000_RDT, last_rx_index);
+        set_reg32(baddr[0], E1000_RDT, last_rx_index);
         queue->rx_index = rx_index;
     }
 
@@ -559,20 +559,20 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     // send out by advancing tail, i.e., pass control of the bufs to the nic
     // this seems like a textbook case for a release memory order,
     // but Intel's driver doesn't even use a compiler barrier here
-    set_reg32(addr, E1000_TDT, queue->tx_index);
+    set_reg32(baddr[0], E1000_TDT, queue->tx_index);
     return sent;
 }
 
 /* Read a subset of the NIC's statistic registers (see section 13.7)        */
 void E1000_device::read_stats(struct device_stats *stats) {
     // Keep in mind that reading the counters will reset them
-    uint32_t rx_pkts = get_reg32(addr, E1000_GPRC);
-    uint32_t tx_pkts = get_reg32(addr, E1000_GPTC);
+    uint32_t rx_pkts = get_reg32(baddr[0], E1000_GPRC);
+    uint32_t tx_pkts = get_reg32(baddr[0], E1000_GPTC);
     // Lower reg. resets when higher reg is read
-    uint64_t rx_bytes = get_reg32(addr, E1000_GORCL) +
-                        (((uint64_t) get_reg32(addr, E1000_GORCH)) << 32);
-    uint64_t tx_bytes = get_reg32(addr, E1000_GOTCL) +
-                        (((uint64_t) get_reg32(addr, E1000_GOTCH)) << 32);
+    uint64_t rx_bytes = get_reg32(baddr[0], E1000_GORCL) +
+                        (((uint64_t) get_reg32(baddr[0], E1000_GORCH)) << 32);
+    uint64_t tx_bytes = get_reg32(baddr[0], E1000_GOTCL) +
+                        (((uint64_t) get_reg32(baddr[0], E1000_GOTCH)) << 32);
     
     // Sum up the counters if a stat object was given
     if (stats != NULL) {
@@ -587,17 +587,17 @@ void E1000_device::set_promisc(bool enabled) {
     // Set / clear settings for both unicast and multicast packets
     if (enabled) {
         ixl_info("enabling promisc mode");
-        set_flags32(addr, E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
+        set_flags32(baddr[0], E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
     } 
     else {
         ixl_info("disabling promisc mode");
-        clear_flags32(addr, E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
+        clear_flags32(baddr[0], E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
     }
 }
 
 /* Get the link speed in Mbps, or 0 if link is down                         */
 uint32_t E1000_device::get_link_speed(void) {
-    uint32_t status = get_reg32(addr, E1000_STATUS);
+    uint32_t status = get_reg32(baddr[0], E1000_STATUS);
 
     // Actually, this is the wrong way of detecting whether the link is up, 
     // since we set the force-link flag during initialization, so the NIC will

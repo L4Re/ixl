@@ -138,8 +138,12 @@ protected:
 
     /***                        Member variables                          ***/
 
-    // Memory address at which the I/O memory described in BAR0 got mapped.
-    uint8_t* addr = NULL;
+    // Memory addresses at that the resources described by the respective BARs
+    // of the underlying PCI device got mapped. The index into the array
+    // corresponds to the number of the BAR (i.e., baddr[0] is the start
+    // address of the memory mapping for BAR0. BARs that are not mapped yet
+    // are represented by NULL (it is also possible that some BARs are absent).
+    uint8_t* baddr[6];
     
     void*    rx_queues;
     void*    tx_queues;

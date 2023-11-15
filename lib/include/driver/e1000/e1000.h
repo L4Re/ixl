@@ -142,7 +142,7 @@ private:
 
         // Map BAR0 region
         ixl_debug("Mapping BAR0 I/O memory...");
-        addr = pci_map_bar0(pci_dev);
+        baddr[0] = pci_map_bar0(pci_dev);
 
         // Create a DMA space for this device
         create_dma_space();
@@ -180,7 +180,7 @@ private:
      * See also section 13.4.17
      */
     void clear_interrupts(void) {
-        get_reg32(addr, E1000_ICR); 
+        get_reg32(baddr[0], E1000_ICR); 
     }
 
     /**
@@ -190,7 +190,7 @@ private:
      */
     void disable_interrupts(void) {
         ixl_debug("Masking off all IRQs for E1000 device");
-        set_reg32(addr, E1000_IMC, 0xffffffff); 
+        set_reg32(baddr[0], E1000_IMC, 0xffffffff); 
     }
 
     /**

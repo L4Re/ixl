@@ -148,7 +148,7 @@ private:
 
         // Map BAR0 region
         ixl_debug("Mapping BAR0 I/O memory...");
-        addr = pci_map_bar0(pci_dev);
+        baddr[0] = pci_map_bar0(pci_dev);
 
         // Create a DMA space for this device
         create_dma_space();
@@ -196,8 +196,8 @@ private:
      */
     void disable_interrupts(void) {
         ixl_debug("Masking off all IRQs for Igb device");
-        set_reg32(addr, IGB_IMC, 0xffffffff);
-        set_reg32(addr, IGB_EIMC, 0xffffffff);
+        set_reg32(baddr[0], IGB_IMC, 0xffffffff);
+        set_reg32(baddr[0], IGB_EIMC, 0xffffffff);
     }
 
     /**

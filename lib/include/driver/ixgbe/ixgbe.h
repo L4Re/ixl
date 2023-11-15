@@ -124,7 +124,7 @@ private:
 
         // Map BAR0 region
         ixl_debug("Mapping BAR0 I/O memory...");
-        addr = pci_map_bar0(pci_dev);
+        baddr[0] = pci_map_bar0(pci_dev);
 
         // Create a DMA space for this device
         create_dma_space();
@@ -152,10 +152,10 @@ private:
         u32 ivar, index;
         msix_vector |= IXGBE_IVAR_ALLOC_VAL;
         index = ((16 * (queue & 1)) + (8 * direction));
-        ivar = get_reg32(addr, IXGBE_IVAR(queue >> 1));
+        ivar = get_reg32(baddr[0], IXGBE_IVAR(queue >> 1));
         ivar &= ~(0xFF << index);
         ivar |= (msix_vector << index);
-        set_reg32(addr, IXGBE_IVAR(queue >> 1), ivar);
+        set_reg32(baddr[0], IXGBE_IVAR(queue >> 1), ivar);
     }
 
     /**
@@ -163,8 +163,8 @@ private:
      */
     void clear_interrupts(void) {
         // Clear interrupt mask
-        set_reg32(addr, IXGBE_EIMC, IXGBE_IRQ_CLEAR_MASK);
-        get_reg32(addr, IXGBE_EICR);
+        set_reg32(baddr[0], IXGBE_EIMC, IXGBE_IRQ_CLEAR_MASK);
+        get_reg32(baddr[0], IXGBE_EICR);
     }
 
     /**
@@ -173,8 +173,8 @@ private:
      */
     void clear_interrupt(uint16_t queue_id) {
         // Clear interrupt mask
-        set_reg32(addr, IXGBE_EIMC, 1 << queue_id);
-        get_reg32(addr, IXGBE_EICR);
+        set_reg32(baddr[0], IXGBE_EIMC, 1 << queue_id);
+        get_reg32(baddr[0], IXGBE_EICR);
     }
 
     /**
@@ -182,7 +182,7 @@ private:
      */
     void disable_interrupts(void) {
         // Clear interrupt mask to stop from interrupts being generated
-        set_reg32(addr, IXGBE_EIMS, 0x00000000);
+        set_reg32(baddr[0], IXGBE_EIMS, 0x00000000);
         clear_interrupts();
     }
 
@@ -192,9 +192,9 @@ private:
      */
     void disable_interrupt(uint16_t queue_id) {
         // Clear interrupt mask to stop from interrupts being generated
-        u32 mask = get_reg32(addr, IXGBE_EIMS);
+        u32 mask = get_reg32(baddr[0], IXGBE_EIMS);
         mask &= ~(1 << queue_id);
-        set_reg32(addr, IXGBE_EIMS, mask);
+        set_reg32(baddr[0], IXGBE_EIMS, mask);
         clear_interrupt(queue_id);
         ixl_debug("Using polling");
     }

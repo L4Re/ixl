@@ -26,12 +26,12 @@ void Igb_device::enable_rx_interrupt(uint16_t qid) {
     uint32_t msi_vec = interrupts.queues[qid].msi_vec;
 
     // Limit the ITR to prevent IRQ storms
-    set_reg32(addr, IGB_EITR + 4 * msi_vec,
+    set_reg32(baddr[0], IGB_EITR + 4 * msi_vec,
               (interrupts.itr_rate & 0x00001fff) << 2);
 
     // Unmask and enable the receive timer interrupt cause
-    clear_flags32(addr, IGB_EIMC, 1 << msi_vec);
-    set_flags32(addr, IGB_EIMS, 1 << msi_vec);
+    clear_flags32(baddr[0], IGB_EIMC, 1 << msi_vec);
+    set_flags32(baddr[0], IGB_EIMS, 1 << msi_vec);
 }
 
 /* Disables a receive interrupt of the NIC.                                 */
@@ -39,8 +39,8 @@ void Igb_device::disable_rx_interrupt(uint16_t qid) {
     uint32_t msi_vec = interrupts.queues[qid].msi_vec;
 
     // Unmask and enable the receive timer interrupt cause
-    set_flags32(addr, IGB_EIMC, 1 << msi_vec);
-    clear_flags32(addr, IGB_EIMS, 1 << msi_vec);
+    set_flags32(baddr[0], IGB_EIMC, 1 << msi_vec);
+    clear_flags32(baddr[0], IGB_EIMS, 1 << msi_vec);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -54,11 +54,11 @@ int Igb_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
         
         // Trigger the EEPROM read by writing the EERD register, then wait
         // for the result to show up
-        set_reg32(addr, IGB_EERD, reg_value);
+        set_reg32(baddr[0], IGB_EERD, reg_value);
         
         for (j = 0; j < EEPROM_MAX_WAIT_MS; j++) {
             usleep(1000);
-            reg_value = get_reg32(addr, IGB_EERD);
+            reg_value = get_reg32(baddr[0], IGB_EERD);
 
             // Success is indicated via a bit flag
             if (reg_value & IGB_EERD_DONE)
@@ -106,8 +106,8 @@ void Igb_device::setup_interrupts(void) {
 
         // Configure the NIC to use multiple MSI-X mode (one IRQ per queue)
         // Also ensure that SR-IOV is disabled.
-        clear_flags32(addr, IGB_SRIOV, IGB_SRIOV_EN);
-        set_flags32(addr, IGB_GPIE, IGB_GPIE_MMSIX);
+        clear_flags32(baddr[0], IGB_SRIOV, IGB_SRIOV_EN);
+        set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX);
 
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
             unsigned int      msi_vec;     // Vector assigned to this RX queue
@@ -115,7 +115,7 @@ void Igb_device::setup_interrupts(void) {
 
             // Get the assigned IRQ vector from the IVAR reg, see also sections
             // 7.3.2 and 8.8.15 of the I350 programmers manual
-            ivar = get_reg32(addr, IGB_IVAR0 + 4 * (rq / 2));
+            ivar = get_reg32(baddr[0], IGB_IVAR0 + 4 * (rq / 2));
 
             if ((rq % 2) == 0)
                 msi_vec = ivar & 0x0000001f;
@@ -138,7 +138,8 @@ void Igb_device::setup_interrupts(void) {
                       msi_vec, msi_info.msi_addr, msi_info.msi_data);
 
             // PCI-enable of MSI-X
-            pcidev_enable_msix(msi_vec, msi_info, addr, table_offs, table_size);
+            pcidev_enable_msix(msi_vec, msi_info, baddr[bir],
+                               table_offs, table_size);
 
             L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
                          "Failed to unmask interrupt");
@@ -203,16 +204,16 @@ void Igb_device::start_rx_queue(int queue_id) {
         queue->virtual_addresses[j] = buf;
     }
 
-    ixl_debug("SRRCTL0 = %x", get_reg32(addr, IGB_SRRCTL0));
+    ixl_debug("SRRCTL0 = %x", get_reg32(baddr[0], IGB_SRRCTL0));
 
     // Wait for the enable bit to show up
     // FIXME: Implement this for other queues as well
-    set_flags32(addr, IGB_RXDCTL0, IGB_RXDCTL_EN);
-    wait_set_reg32(addr, IGB_RXDCTL0, IGB_RXDCTL_EN);
+    set_flags32(baddr[0], IGB_RXDCTL0, IGB_RXDCTL_EN);
+    wait_set_reg32(baddr[0], IGB_RXDCTL0, IGB_RXDCTL_EN);
 
     // Only now set the final head and tail pointers (were initialized to 0)
-    set_reg32(addr, IGB_RDH, 0);
-    set_reg32(addr, IGB_RDT, queue->num_entries - 1);
+    set_reg32(baddr[0], IGB_RDH, 0);
+    set_reg32(baddr[0], IGB_RDT, queue->num_entries - 1);
 }
 
 /* Kicks of the TX part by configuring the TCTL register accordingly        */
@@ -222,9 +223,9 @@ void Igb_device::start_tx_queue(int queue_id) {
     // Enable queue 0
     // FIXME: As an optimization, we could also think about enabling bursted
     //        write back of finished send descriptors here.
-    set_flags32(addr, IGB_TXDCTL0, IGB_TXDCTL_EN);
+    set_flags32(baddr[0], IGB_TXDCTL0, IGB_TXDCTL_EN);
 
-    uint32_t tctl = get_reg32(addr, IGB_TCTL);
+    uint32_t tctl = get_reg32(baddr[0], IGB_TCTL);
     
     // Clear collision threshold bitmask
     tctl &= ~IGB_TCTL_CT;
@@ -233,7 +234,7 @@ void Igb_device::start_tx_queue(int queue_id) {
     tctl |= IGB_COLLISION_THRESHOLD << IGB_CT_SHIFT;
 
     // Enable TX queue, enable padding of short packets
-    set_reg32(addr, IGB_TCTL, tctl | IGB_TCTL_EN | IGB_TCTL_PSP);
+    set_reg32(baddr[0], IGB_TCTL, tctl | IGB_TCTL_EN | IGB_TCTL_PSP);
 }
 
 void Igb_device::init_rx(void) {
@@ -242,7 +243,7 @@ void Igb_device::init_rx(void) {
     // disable them again here.
 
     // Disable VLAN filtering as we do not support it anyways
-    clear_flags32(addr, IGB_RCTL, IGB_RCTL_VFE);
+    clear_flags32(baddr[0], IGB_RCTL, IGB_RCTL_VFE);
 
     // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_rx_queues; i++) {
@@ -250,7 +251,7 @@ void Igb_device::init_rx(void) {
        
         // Instruct NIC to drop packets if no RX descriptors are available
         // FIXME: When using multiple RX queues, choose the rights SRRCTL reg
-        set_flags32(addr, IGB_SRRCTL0, IGB_SRRCTL_DREN);
+        set_flags32(baddr[0], IGB_SRRCTL0, IGB_SRRCTL_DREN);
 
         struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + i;
         
@@ -271,22 +272,22 @@ void Igb_device::init_rx(void) {
         queue->descriptors = (struct igb_rx_desc*) mem.virt;
 
         // Tell the device where it can write to (its iova, so DMA addrs)
-        set_reg32(addr, IGB_RDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
-        set_reg32(addr, IGB_RDBAH, (uint32_t) (mem.phy >> 32));
-        set_reg32(addr, IGB_RDLEN, ring_size_bytes);
+        set_reg32(baddr[0], IGB_RDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
+        set_reg32(baddr[0], IGB_RDBAH, (uint32_t) (mem.phy >> 32));
+        set_reg32(baddr[0], IGB_RDLEN, ring_size_bytes);
         // Set ring to empty at start
-        set_reg32(addr, IGB_RDH, 0);
-        set_reg32(addr, IGB_RDT, 0);
+        set_reg32(baddr[0], IGB_RDH, 0);
+        set_reg32(baddr[0], IGB_RDT, 0);
         ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
         ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
     }
 
     // Enable checksum offloading for CRC and received UCP/TCP packets
-    set_flags32(addr, IGB_RXCSUM, IGB_RXCSUM_TUOFL | IGB_RXCSUM_CRCOFL);
+    set_flags32(baddr[0], IGB_RXCSUM, IGB_RXCSUM_TUOFL | IGB_RXCSUM_CRCOFL);
 
     // Merely kicks of the RX part by setting the RX enabled bit in RCTL
     // Also enables reception of broadcast frames (BAM)
-    set_flags32(addr, IGB_RCTL, IGB_RCTL_EN | IGB_RCTL_BAM);
+    set_flags32(baddr[0], IGB_RCTL, IGB_RCTL_EN | IGB_RCTL_BAM);
 }
 
 void Igb_device::init_tx(void) {
@@ -302,15 +303,15 @@ void Igb_device::init_tx(void) {
         memset(mem.virt, -1, ring_size_bytes);
 
         // tell the device where it can write to (its iova, so DMA addrs)
-        set_reg32(addr, IGB_TDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
-        set_reg32(addr, IGB_TDBAH, (uint32_t) (mem.phy >> 32));
-        set_reg32(addr, IGB_TDLEN, ring_size_bytes);
+        set_reg32(baddr[0], IGB_TDBAL, (uint32_t) (mem.phy & 0xFFFFFFFFull));
+        set_reg32(baddr[0], IGB_TDBAH, (uint32_t) (mem.phy >> 32));
+        set_reg32(baddr[0], IGB_TDLEN, ring_size_bytes);
         ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
         ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
 
         // Init TX queue to empty
-        set_reg32(addr, IGB_TDH, 0);
-        set_reg32(addr, IGB_TDT, 0);
+        set_reg32(baddr[0], IGB_TDH, 0);
+        set_reg32(baddr[0], IGB_TDT, 0);
 
         // Keep a reference to mem in the queue, otherwise the object will go
         // out of scope, leading to the revocation of the backing capability
@@ -346,19 +347,19 @@ void Igb_device::reset_and_init(void) {
 
     // Stop receive and transmit units, wait for pending transactions to
     // complete
-    clear_flags32(addr, IGB_RCTL, IGB_RCTL_EN);
-    clear_flags32(addr, IGB_TCTL, IGB_TCTL_EN);
+    clear_flags32(baddr[0], IGB_RCTL, IGB_RCTL_EN);
+    clear_flags32(baddr[0], IGB_TCTL, IGB_TCTL_EN);
     usleep(10000);
 
     // Issue the reset command (done by setting the reset bit in the ctrl reg)
-    uint32_t ctrl_reg = get_reg32(addr, IGB_CTRL);
+    uint32_t ctrl_reg = get_reg32(baddr[0], IGB_CTRL);
     
     // Set automatic link speed detection and force link to come up
     ctrl_reg |= IGB_CTRL_SLU;
     ctrl_reg &= ~(IGB_CTRL_FRCSPD | IGB_CTRL_FRCDPX);
-    set_reg32(addr, IGB_CTRL, ctrl_reg | IGB_CTRL_PRT_RST | 
-                                         IGB_CTRL_DEV_RST |
-                                         IGB_CTRL_PHY_RST);
+    set_reg32(baddr[0], IGB_CTRL, ctrl_reg | IGB_CTRL_PRT_RST | 
+                                             IGB_CTRL_DEV_RST |
+                                             IGB_CTRL_PHY_RST);
     // Wait for NIC to read default settings from EEPROM
     usleep(10000);
 
@@ -385,8 +386,8 @@ void Igb_device::reset_and_init(void) {
     // Mark RAR address entry valid
     rar_hi |= IGB_RAH_AV;
 
-    set_reg32(addr, IGB_RA, rar_lo);
-    set_reg32(addr, IGB_RA + 4, rar_hi);
+    set_reg32(baddr[0], IGB_RA, rar_lo);
+    set_reg32(baddr[0], IGB_RA + 4, rar_hi);
 
     // Normally, we should clear the rest of the RAR table here. Let's see
     // whether we can skip this for now...
@@ -406,7 +407,7 @@ void Igb_device::reset_and_init(void) {
     // Enable IRQ for receiving packets
     if (interrupts.interrupts_enabled) {
         // Enable auto-clearing for all possible (25) MSIs
-        set_reg32(addr, IGB_EIAC, 0x01ffffff);
+        set_reg32(baddr[0], IGB_EIAC, 0x01ffffff);
 
         // For now, only enable the IRQ of the first receive queue
         enable_rx_interrupt(0);
@@ -496,7 +497,7 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // this is intentionally off by one, otherwise we'd set RDT=RDH if 
         // we are receiving faster than packets are coming in
         // RDT=RDH means queue is full
-        set_reg32(addr, IGB_RDT, last_rx_index);
+        set_reg32(baddr[0], IGB_RDT, last_rx_index);
         queue->rx_index = rx_index;
     }
 
@@ -615,20 +616,20 @@ uint32_t Igb_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     // send out by advancing tail, i.e., pass control of the bufs to the nic
     // this seems like a textbook case for a release memory order,
     // but Intel's driver doesn't even use a compiler barrier here
-    set_reg32(addr, IGB_TDT, queue->tx_index);
+    set_reg32(baddr[0], IGB_TDT, queue->tx_index);
     return sent;
 }
 
 /* Read a subset of the NIC's statistic registers (see section 13.7)        */
 void Igb_device::read_stats(struct device_stats *stats) {
     // Keep in mind that reading the counters will reset them
-    uint32_t rx_pkts = get_reg32(addr, IGB_GPRC);
-    uint32_t tx_pkts = get_reg32(addr, IGB_GPTC);
+    uint32_t rx_pkts = get_reg32(baddr[0], IGB_GPRC);
+    uint32_t tx_pkts = get_reg32(baddr[0], IGB_GPTC);
     // Lower reg. resets when higher reg is read
-    uint64_t rx_bytes = get_reg32(addr, IGB_GORCL) +
-                        (((uint64_t) get_reg32(addr, IGB_GORCH)) << 32);
-    uint64_t tx_bytes = get_reg32(addr, IGB_GOTCL) +
-                        (((uint64_t) get_reg32(addr, IGB_GOTCH)) << 32);
+    uint64_t rx_bytes = get_reg32(baddr[0], IGB_GORCL) +
+                        (((uint64_t) get_reg32(baddr[0], IGB_GORCH)) << 32);
+    uint64_t tx_bytes = get_reg32(baddr[0], IGB_GOTCL) +
+                        (((uint64_t) get_reg32(baddr[0], IGB_GOTCH)) << 32);
     
     // Sum up the counters if a stat object was given
     if (stats != NULL) {
@@ -643,17 +644,17 @@ void Igb_device::set_promisc(bool enabled) {
     // Set / clear settings for both unicast and multicast packets
     if (enabled) {
         ixl_info("enabling promisc mode");
-        set_flags32(addr, IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
+        set_flags32(baddr[0], IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
     } 
     else {
         ixl_info("disabling promisc mode");
-        clear_flags32(addr, IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
+        clear_flags32(baddr[0], IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
     }
 }
 
 /* Get the link speed in Mbps, or 0 if link is down                         */
 uint32_t Igb_device::get_link_speed(void) {
-    uint32_t status = get_reg32(addr, IGB_STATUS);
+    uint32_t status = get_reg32(baddr[0], IGB_STATUS);
 
     if (!(status & IGB_STATUS_LU)) {
         return 0;
