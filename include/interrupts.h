@@ -65,6 +65,10 @@ void check_interrupt(struct interrupt_queue* interrupt, uint64_t diff, uint32_t 
  * Allocates and IRQ cap into the object provided by the client and subsequently
  * binds this IRQ to the ICU given.
  *
+ * NOTE: If you intend to bind irq to an MSI interrupt, make sure to OR the
+ *       irqnum with L4::Icu::F_msi before passing it to this function, as
+ *       imposed by the L4Re API.
+ *
  * \param irqnum IRQ number that shall be used during bind operation.
  * \param irq    IRQ object to fill with a new capability. Must not be NULL!
  * \param icu    IRQ control unit that irq shall be bound to.

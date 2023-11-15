@@ -76,6 +76,9 @@ void Ixl_device::setup_icu_cap(void) {
     if (l4_error(interrupts.vicu->info(&icu_info)) < 0)
         ixl_error("Failed to get ICU info");
 
+    ixl_debug("ICU info: features = %x, #IRQs = %u, #MSIs = %u",
+              icu_info.features, icu_info.nr_irqs, icu_info.nr_msis);
+
     if (icu_info.features & L4::Icu::F_msi) {
         if (icu_info.nr_msis < num_rx_queues) {
             ixl_error("ICU supports only %u MSIs, but driver needs %u.",

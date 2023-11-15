@@ -141,21 +141,24 @@ void Ixgbe_device::setup_interrupts(void) {
         setup_msix(pci_dev);
 
         pcidev_get_msix_info(pci_dev, &bir, &table_offs, &table_size);
-        // FIXME: Right now we rely on the MSI-X table being located in BAR 0
-        if (bir != 0) {
-            ixl_error("Can not access MSI-X table in BAR %u.", bir);
+        // Check whether the requested BAR is already mapped
+        if (baddr[bir] == NULL) {
+            ixl_debug("Mapping in BAR%u for accessing MSI-X table.", bir);
+            baddr[bir] = pci_map_bar(pci_dev, bir);
         }
 
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
+            // MSI vector representation as suitable for the L4 API
+            unsigned int      msi_vec_l4 = rq | L4::Icu::F_msi;
             l4_icu_msi_info_t msi_info;
 
             // Create and bind the IRQ to the vICU of the PCI device's bus
-            create_and_bind_irq(rq, &interrupts.queues[rq].irq,
+            create_and_bind_irq(msi_vec_l4, &interrupts.queues[rq].irq,
                                 interrupts.vicu);
 
             // Get the MSI info
             uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
-            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+            L4Re::chksys(interrupts.vicu->msi_info(msi_vec_l4, source, &msi_info),
                          "Failed to retrieve MSI info.");
             ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
                       rq, msi_info.msi_addr, msi_info.msi_data);
@@ -164,7 +167,8 @@ void Ixgbe_device::setup_interrupts(void) {
             pcidev_enable_msix(rq, msi_info, baddr[bir],
                                table_offs, table_size);
 
-            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(msi_vec_l4),
+                                      l4_utcb()),
                          "Failed to unmask interrupt");
             ixl_debug("Attached to MSI-X %u", rq);
 
@@ -179,15 +183,17 @@ void Ixgbe_device::setup_interrupts(void) {
         setup_msi(pci_dev);
 
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
+            // MSI vector representation as suitable for the L4 API
+            unsigned int      msi_vec_l4 = rq | L4::Icu::F_msi;
             l4_icu_msi_info_t msi_info;
 
             // Create and bind the IRQ to the vICU of the PCI device's bus
-            create_and_bind_irq(rq, &interrupts.queues[rq].irq,
+            create_and_bind_irq(msi_vec_l4, &interrupts.queues[rq].irq,
                                 interrupts.vicu);
 
             // Get the MSI info
             uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
-            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+            L4Re::chksys(interrupts.vicu->msi_info(msi_vec_l4, source, &msi_info),
                          "Failed to retrieve MSI info.");
             ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
                       rq, msi_info.msi_addr, msi_info.msi_data);
@@ -196,7 +202,8 @@ void Ixgbe_device::setup_interrupts(void) {
             pcidev_enable_msi(pci_dev, rq, msi_info);
 
             // Lastly, unmask the IRQ
-            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(msi_vec_l4),
+                                      l4_utcb()),
                          "Failed to unmask interrupt");
             ixl_debug("Attached to MSI %u", rq);
 

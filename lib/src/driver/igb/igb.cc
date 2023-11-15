@@ -99,55 +99,86 @@ void Igb_device::setup_interrupts(void) {
         setup_msix(pci_dev);
 
         pcidev_get_msix_info(pci_dev, &bir, &table_offs, &table_size);
-        // FIXME: Right now we rely on the MSI-X table being located in BAR 0
-        if (bir != 0) {
-            ixl_error("Can not access MSI-X table in BAR %u.", bir);
+        // Check whether the requested BAR is already mapped
+        if (baddr[bir] == NULL) {
+            ixl_debug("Mapping in BAR%u for accessing MSI-X table.", bir);
+            baddr[bir] = pci_map_bar(pci_dev, bir);
         }
 
-        // Configure the NIC to use multiple MSI-X mode (one IRQ per queue)
+        // Configure the NIC to use multiple MSI-X mode (one IRQ per queue),
+        // also set other flags recommended in section 7.3.3.11
         // Also ensure that SR-IOV is disabled.
         clear_flags32(baddr[0], IGB_SRIOV, IGB_SRIOV_EN);
-        set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX);
+        set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX |
+                                        IGB_GPIE_NSICR |
+                                        IGB_GPIE_EIAME |
+                                        IGB_GPIE_PBA);
 
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
-            unsigned int      msi_vec;     // Vector assigned to this RX queue
+            // MSI vector that we allocate. For now we will do a 1:1 mapping
+            // between queue number and MSI vector index
+            uint32_t          msi_vec;
+            // L4 representation of the MSI vector. We need to add flags to
+            // use L4's API correctly...
+            uint32_t          msi_vec_l4;
             l4_icu_msi_info_t msi_info;
 
-            // Get the assigned IRQ vector from the IVAR reg, see also sections
+            // Allocate an IRQ vector via the IVAR reg, see also sections
             // 7.3.2 and 8.8.15 of the I350 programmers manual
-            ivar = get_reg32(baddr[0], IGB_IVAR0 + 4 * (rq / 2));
+            ivar = get_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2);
 
-            if ((rq % 2) == 0)
-                msi_vec = ivar & 0x0000001f;
-            else
-                msi_vec = ivar & 0x001f0000;
+            if ((rq % 2) == 0) {
+                // Restrict queue ID to 5 bit in length and set valid bit
+                // for the new entry in the IVAR reg
+                msi_vec = rq & 0x0000001f;
+                ivar    = ivar | msi_vec | 0x00000080;
 
-            // NIC only allows for MSI-X vectors between 0 and 24
-            if (msi_vec > 24)
-                ixl_error("Obtained bad MSI-X vector %u from IVAR.", msi_vec);
+                // Set new IVAR value
+                set_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2, ivar);
+            }
+            else {
+                // Restrict queue ID to 5 bit in length and set valid bit
+                // for the new entry in the IVAR reg
+                msi_vec = (rq & 0x0000001f) << 16;
+                ivar    = ivar | msi_vec | 0x00800000;
+
+                // Set new IVAR value
+                set_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2, ivar);
+            }
 
             // Create and bind the IRQ to the vICU of the PCI device's bus
-            create_and_bind_irq(msi_vec, &interrupts.queues[rq].irq,
+            ixl_debug("MSI-X vector allocated for RX queue %u is %u",
+                      rq, rq);
+
+            // This is what took me three hours to realize: In the L4Re API,
+            // the same interface is used to handle legacy IRQs and MSIs.
+            // Apparently, this is why it is mandatory to add a special MSI
+            // flag to the actual MSI vector ID when calling L4Re functions
+            // that should do something w.r.t. to said MSI...
+            msi_vec_l4 = rq | L4::Icu::F_msi;
+            create_and_bind_irq(msi_vec_l4, &interrupts.queues[rq].irq,
                                 interrupts.vicu);
 
             // Get the MSI info
             uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
-            L4Re::chksys(interrupts.vicu->msi_info(rq, source, &msi_info),
+            L4Re::chksys(interrupts.vicu->msi_info(msi_vec_l4, source,
+                                                   &msi_info),
                          "Failed to retrieve MSI info.");
             ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
-                      msi_vec, msi_info.msi_addr, msi_info.msi_data);
+                      rq, msi_info.msi_addr, msi_info.msi_data);
 
             // PCI-enable of MSI-X
-            pcidev_enable_msix(msi_vec, msi_info, baddr[bir],
-                               table_offs, table_size);
+            pcidev_enable_msix(rq, msi_info, baddr[bir], table_offs,
+                               table_size);
 
-            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(rq), l4_utcb()),
+            L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(msi_vec_l4),
+                                                              l4_utcb()),
                          "Failed to unmask interrupt");
-            ixl_debug("Attached to MSI-X %u", msi_vec);
+            ixl_debug("Attached to MSI-X %u", rq);
 
             interrupts.queues[rq].moving_avg.length = 0;
             interrupts.queues[rq].moving_avg.index  = 0;
-            interrupts.queues[rq].msi_vec           = msi_vec;
+            interrupts.queues[rq].msi_vec           = rq;
             interrupts.queues[rq].interval = INTERRUPT_INITIAL_INTERVAL;
         }
     }
@@ -435,7 +466,6 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     if (interrupts_enabled && interrupt->interrupt_enabled) {
         // We only listen on IRQs caused by this RQ, so nothing to do
         // afterwards as auto clearing is enabled
-        ixl_debug("waiting for irq");
         interrupt->irq->receive(interrupts.timeout);
     }
 

@@ -165,7 +165,10 @@ struct igb_tx_desc {
 #define IGB_TCTL_CT       0x00000ff0    /* Collision threshold bitmask      */
 
 // Igb GPIE register
+#define IGB_GPIE_NSICR    0x00000001    /* Non-selective IRQ clear on read  */
 #define IGB_GPIE_MMSIX    0x00000010    /* Multiple MSI-X enable            */
+#define IGB_GPIE_EIAME    0x40000000    /* Autoclear mask bit im EIAM       */
+#define IGB_GPIE_PBA      0x80000000    /* PBA support                      */
 
 // Igb transmit descriptor control register
 #define IGB_TXDCTL_EN     0x02000000    /* Transmit queue enable            */

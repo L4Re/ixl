@@ -78,6 +78,12 @@ void E1000_device::setup_interrupts(void) {
     // supprot MSI-X). Note also that there is only a single receive queue
     // (an in fact also just a single IRQ) on an e1000 card.
     if (pcidev_supports_msi(pci_dev)) {
+        // If MSI is available, we will simply go for MSI 0.
+
+        // L4Re API needs the IRQ vector flagged to be recognized as MSI,
+        // whereas everything else deals with normal MSI vectors.
+        unsigned int msi_vec_l4 = 0 | L4::Icu::F_msi;
+
         l4_icu_msi_info_t msi_info;
 
         ixl_info("Using MSI interrupts...");
@@ -85,11 +91,12 @@ void E1000_device::setup_interrupts(void) {
         setup_msi(pci_dev);
 
         // Create and bind the IRQ to the vICU of the PCI device's bus
-        create_and_bind_irq(0, &interrupts.queues[0].irq, interrupts.vicu);
+        create_and_bind_irq(msi_vec_l4, &interrupts.queues[0].irq,
+                            interrupts.vicu);
 
         // Get the MSI info
         uint64_t source = pci_dev.dev_handle() | L4vbus::Icu::Src_dev_handle;
-        L4Re::chksys(interrupts.vicu->msi_info(0, source, &msi_info),
+        L4Re::chksys(interrupts.vicu->msi_info(msi_vec_l4, source, &msi_info),
                      "Failed to retrieve MSI info.");
         ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
                   0, msi_info.msi_addr, msi_info.msi_data);
@@ -98,7 +105,7 @@ void E1000_device::setup_interrupts(void) {
         pcidev_enable_msi(pci_dev, 0, msi_info);
 
         // Lastly, unmask the IRQ
-        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(0), l4_utcb()),
+        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(msi_vec_l4), l4_utcb()),
                      "Failed to unmask interrupt");
         ixl_debug("Attached to MSI %u", 0);
 
