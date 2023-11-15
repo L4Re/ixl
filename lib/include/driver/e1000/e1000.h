@@ -142,7 +142,7 @@ private:
 
         // Map BAR0 region
         ixl_debug("Mapping BAR0 I/O memory...");
-        baddr[0] = pci_map_bar0(pci_dev);
+        baddr[0] = pci_map_bar(pci_dev, 0);
 
         // Create a DMA space for this device
         create_dma_space();

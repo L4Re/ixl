@@ -94,8 +94,8 @@ static bool check_pci_cap(L4vbus::Pci_dev &dev, uint8_t cap_id, uint32_t *addr){
  ****************************************************************************/
 
 
-/* Compute the size of the I/O memory accessible through BAR0               */
-l4_uint64_t Ixl::get_bar0_size(L4vbus::Pci_dev& dev) {
+/* Compute the size of the I/O memory accessible through BAR<idx>           */
+l4_uint64_t Ixl::get_bar_size(L4vbus::Pci_dev& dev, unsigned int idx) {
     // TODO: According to OSdev wiki, one should also disable the I/O and
     //       memory decode bytes in the command register before executing
     //       this operation...
@@ -106,18 +106,18 @@ l4_uint64_t Ixl::get_bar0_size(L4vbus::Pci_dev& dev) {
     l4_uint32_t lsb_old;
     l4_uint32_t msb_old;
 
-    // Save original content of BAR0
-    L4Re::chksys(dev.cfg_read(0x10, &lsb_old, 32));
-    L4Re::chksys(dev.cfg_read(0x14, &msb_old, 32));
+    // Save original content of BAR
+    L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb_old, 32));
+    L4Re::chksys(dev.cfg_read(0x14 + idx * 4, &msb_old, 32));
     
     // Check if the device is memory but 32-bit addressed (Bit 2 != 1))
     if (! (lsb_old & 0x00000004)) {
         // Write all-ones to the register and read back the BAR value
-        L4Re::chksys(dev.cfg_write(0x10, lsb, 32));
-        L4Re::chksys(dev.cfg_read(0x10, &lsb, 32));
+        L4Re::chksys(dev.cfg_write(0x10 + idx * 4, lsb, 32));
+        L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb, 32));
 
         // restore the original register contents
-        L4Re::chksys(dev.cfg_write(0x10, lsb_old, 32));
+        L4Re::chksys(dev.cfg_write(0x10 + idx * 4, lsb_old, 32));
 
         // Now compute the size of the BAR memory. Remember to clear the lower
         // four bits of the LSB register part
@@ -129,14 +129,14 @@ l4_uint64_t Ixl::get_bar0_size(L4vbus::Pci_dev& dev) {
         // contained in the next MSB.
 
         // Write all-ones to the register and read back the BAR value
-        L4Re::chksys(dev.cfg_write(0x10, lsb, 32));
-        L4Re::chksys(dev.cfg_write(0x14, msb, 32));
-        L4Re::chksys(dev.cfg_read(0x10, &lsb, 32));
-        L4Re::chksys(dev.cfg_read(0x14, &msb, 32));
+        L4Re::chksys(dev.cfg_write(0x10 + idx * 4, lsb, 32));
+        L4Re::chksys(dev.cfg_write(0x14 + idx * 4, msb, 32));
+        L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb, 32));
+        L4Re::chksys(dev.cfg_read(0x14 + idx * 4, &msb, 32));
 
         // restore the original register contents
-        L4Re::chksys(dev.cfg_write(0x10, lsb_old, 32));
-        L4Re::chksys(dev.cfg_write(0x14, msb_old, 32));
+        L4Re::chksys(dev.cfg_write(0x10 + idx * 4, lsb_old, 32));
+        L4Re::chksys(dev.cfg_write(0x14 + idx * 4, msb_old, 32));
 
         // Now compute the size of the BAR memory. Remember to clear the lower
         // four bits of the LSB register part
@@ -148,12 +148,12 @@ l4_uint64_t Ixl::get_bar0_size(L4vbus::Pci_dev& dev) {
     return bar_size + 1;
 }
 
-/* Get the physical address of BAR0                                         */
-l4_uint64_t Ixl::get_bar0_addr(L4vbus::Pci_dev& dev) {
+/* Get the physical address of BAR<idx>                                     */
+l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx) {
     l4_uint32_t lsb;
     l4_uint32_t msb;
 
-    L4Re::chksys(dev.cfg_read(0x10, &lsb, 32));
+    L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb, 32));
     
     // Always mask the lower bits of the LSB (mapping is page-aligned)
 
@@ -167,7 +167,7 @@ l4_uint64_t Ixl::get_bar0_addr(L4vbus::Pci_dev& dev) {
 
     // Device is 64-bit addressed, read the next BAR to obtain the MSB part of
     // the address
-    L4Re::chksys(dev.cfg_read(0x14, &msb, 32));
+    L4Re::chksys(dev.cfg_read(0x14 + idx * 4, &msb, 32));
 
     return (((l4_uint64_t) msb) << 32 | lsb) & 0xfffffffffffff000UL;
 }
@@ -182,7 +182,8 @@ void Ixl::enable_dma(L4vbus::Pci_dev& dev) {
     L4Re::chksys(dev.cfg_write(0x4, cmd_reg, 16));
 }
 
-uint8_t* Ixl::pci_map_bar0(L4vbus::Pci_dev& dev) {
+/* Map a BAR to the address space of the executing task.                    */
+uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx) {
     l4_addr_t   iomem_addr;       // Address for mapping the I/O memory of BAR0
     l4_uint64_t iomem_size;       // Size of memory accessible through BAR0
     l4_uint64_t bar_addr;         // Physical address contained in BAR0
@@ -190,30 +191,17 @@ uint8_t* Ixl::pci_map_bar0(L4vbus::Pci_dev& dev) {
     enable_dma(dev);
     
     // Obtain information about the device (e.g. no. of resources & their types)
+    // This is only for debugging purposes, though.
     l4vbus_device_t devinfo;
     L4Re::chksys(dev.device(&devinfo));
 
-    ixl_debug("dev has %u resources", devinfo.num_resources);
+    ixl_debug("Dev has %u resources", devinfo.num_resources);
     
-    // Iterate through list of device resoures. For now, we only care about
-    // the I/O memory that can be mapped through BAR0
-    // TODO: Can be we sure that L4 returns BAR0 as the first I/O memory
-    //       resource if multiple I/O memory windows are available?
-    unsigned int i;
-    l4vbus_resource_t res;
-    for (i = 0; i < devinfo.num_resources; i++) {
-        L4Re::chksys(dev.get_resource(i, &res));
+    iomem_size = get_bar_size(dev, idx);
+    bar_addr   = get_bar_addr(dev, idx);
 
-        if (res.type == L4VBUS_RESOURCE_MEM)
-            break;
-
-        ixl_debug("Skipping resource of type %u...", res.type);
-    }
-
-    iomem_size = get_bar0_size(dev);
-    bar_addr   = get_bar0_addr(dev);
-
-    ixl_debug("bar0 addr = %llx, bar0 size = %llx", bar_addr, iomem_size);
+    ixl_debug("BAR%u addr = %llx, BAR%u size = %llx", idx, bar_addr,
+              idx, iomem_size);
 
     L4::Cap<L4Re::Dataspace> ds =
             L4::cap_reinterpret_cast<L4Re::Dataspace>(dev.bus_cap());
@@ -232,7 +220,7 @@ uint8_t* Ixl::pci_map_bar0(L4vbus::Pci_dev& dev) {
         L4Re::Rm::F::Search_addr | L4Re::Rm::F::Cache_uncached | L4Re::Rm::F::RW,
         L4::Ipc::make_cap_rw(ds), bar_addr, L4_PAGESHIFT));
 
-    ixl_debug("Mapped bar0 to address %lx", iomem_addr);
+    ixl_debug("Mapped BAR%u to address %lx", idx, iomem_addr);
     return (uint8_t *) iomem_addr;
 }
 
