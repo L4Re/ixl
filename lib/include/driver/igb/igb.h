@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *     E1000_device - Header for a simple e1000 NIC device driver on L4.     *
+ *          igb.h - Header for a simple Igb device driver on L4.             *
  *                                                                           *
  * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>   *
  *                                                                           *
@@ -13,15 +13,21 @@
 
 #include <l4/ixylon/memory.h>
 
-#include "e1000_type.h"
+#include "igb_type.h"
 #include "../../pci.h"
 
 namespace Ixl {
 
 /**
- * Device driver specialized for the e1000 NIC family.
+ * Device driver specialized for the igb NIC family (e.g. I350).
+ *
+ * Note: For now, this software is only a slight adaptation of the E1000
+ *       driver, leaving out many features such as RSS (multi-queue receive)
+ *       etc. Maybe we will add those later, which will make the igb driver
+ *       much more similar to ixgbe than to the original E1000 one (even
+ *       though many register definitions stay the same).
  */
-class E1000_device : public Ixl_device {
+class Igb_device : public Ixl_device {
 public:
     // Taken from the linux kernel, file:
     // /drivers/net/ethernet/intel/e1000/e1000.h
@@ -62,33 +68,34 @@ public:
 
     void set_mac_addr(struct mac_address mac);
 
-    /**
-     * Initializes and returns the E1000 device.
+    /*
+*
+     * Initializes and returns the Igb device.
      * @param pci_dev PCI device handle received from this task's vbus
      * @param rx_queues The number of receiver queues.
      * @param tx_queues The number of transmitter queues.
      * @param interrupt_timeout The interrupt timeout in milliseconds
      *      - if set to -1 the interrupt timeout is disabled
      *      - if set to 0 the interrupt is disabled entirely)
-     * @return The initialized E1000 device.
+     * @return The initialized Igb device.
      */
-    static E1000_device* e1000_init(L4vbus::Pci_dev&& pci_dev,
-                                    uint16_t rx_queues,
-                                    uint16_t tx_queues,
-                                    int irq_timeout);
+    static Igb_device* igb_init(L4vbus::Pci_dev&& pci_dev,
+                                uint16_t rx_queues,
+                                uint16_t tx_queues,
+                                int irq_timeout);
 
     std::string get_driver_name(void) {
-        return("ixl-e1000");
+        return("ixl-igb");
     }
 
 private:
     // allocated for each rx queue, keeps state for the receive function
-    struct e1000_rx_queue {
+    struct igb_rx_queue {
         // DMA'able memory from that the individual descriptors are allocated
         struct dma_memory descr_mem;
 
         // Array of descriptors backed by descr_mem
-        volatile struct e1000_rx_desc* descriptors;
+        volatile struct igb_rx_desc* descriptors;
         
         // DMA'able memory for storing incoming packets
         struct mempool* mempool;
@@ -102,12 +109,12 @@ private:
     };
 
     // allocated for each tx queue, keeps state for the transmit function
-    struct e1000_tx_queue {
+    struct igb_tx_queue {
         // DMA'able memory from that the individual descriptors are allocated
         struct dma_memory descr_mem;
 
         // Array of descriptors backed by descr_mem
-        volatile struct e1000_tx_desc* descriptors;
+        volatile struct igb_tx_desc* descriptors;
         
         // No. of descriptors in the queue
         uint16_t num_entries;
@@ -119,17 +126,16 @@ private:
         void* virtual_addresses[];
     };
 
-
     /***                           Constructor                            ***/
-    E1000_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
-                 bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
+    Igb_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
+               bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
         l4_timeout_s l4tos = l4_timeout_from_us(irq_timeout_ms * 1000);
 
-        // Integrity check: The E1000 series does not have multi-queue support
+        // FIXME: Implement multi-queue support for this device type
         if (rx_qs != 1)
-            ixl_error("An E1000 device supports exactly one receive queue.");
+            ixl_error("Currently, an Igb device supports exactly one receive queue.");
         if (tx_qs != 1)
-            ixl_error("An E1000 device supports exactly one transmit queue.");
+            ixl_error("Currently, an Igb device supports exactly one transmit queue.");
 
         num_rx_queues = rx_qs;
         num_tx_queues = tx_qs;
@@ -137,7 +143,7 @@ private:
         interrupts.interrupts_enabled = irq_enabled;
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout            = l4_timeout(l4tos, l4tos);
-    
+
         pci_dev  = dev;
 
         // Do the IRQ-related setup if requested by user
@@ -153,17 +159,17 @@ private:
         // Create a DMA space for this device
         create_dma_space();
 
-        rx_queues = calloc(rx_qs, sizeof(struct e1000_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
-        tx_queues = calloc(tx_qs, sizeof(struct e1000_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
+        rx_queues = calloc(rx_qs, sizeof(struct igb_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
+        tx_queues = calloc(tx_qs, sizeof(struct igb_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
     }
 
     /***                           Functions                              ***/
-    
+
     /**
      *
      * Read <word_cnt> number of 16-Bit words from the NIC's EEPROM, starting
      * at address <addr>. Note that addressing in the EEPROM is done with an
-     * increment of 2 Bytes. <buf> shall point to an array of uint16_t with 
+     * increment of 2 Bytes. <buf> shall point to an array of uint16_t with
      * a capacity of at least <word_cnt> elements.
      *
      * @param saddr Starting address to read from the NIC's EEPROM.
@@ -180,7 +186,7 @@ private:
      * See also section 13.4.17
      */
     void clear_interrupts(void) {
-        get_reg32(addr, E1000_ICR); 
+        get_reg32(addr, IGB_ICR);
     }
 
     /**
@@ -189,8 +195,8 @@ private:
      * See also section 13.4.21
      */
     void disable_interrupts(void) {
-        ixl_debug("Masking off all IRQs for E1000 device");
-        set_reg32(addr, E1000_IMC, 0xffffffff); 
+        ixl_debug("Masking off all IRQs for Igb device");
+        set_reg32(addr, IGB_IMC, 0xffffffff);
     }
 
     /**
@@ -217,7 +223,7 @@ private:
     void reset_and_init(void);
 
     /***                        Member variables                          ***/
-    
+
     // MAC address of this device
     struct mac_address mac_addr;
     // Does mac_addr contain a valid value?

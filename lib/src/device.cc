@@ -6,6 +6,7 @@
 #include <l4/ixylon/device.h>
 
 #include "driver/e1000/e1000.h"
+#include "driver/igb/igb.h"
 #include "driver/ixgbe/ixgbe.h"
 #include "pci.h"
 
@@ -110,6 +111,13 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                     return E1000_device::e1000_init(std::move(dev),
                                                     rx_queues, tx_queues,
                                                     irq_timeout);
+                    break;
+                case IGB_DEV_ID_I350:
+                    ixl_warn("The Igb driver is untested and provides only a "
+                             "very limited feature set. You have been warned!");
+                    return Igb_device::igb_init(std::move(dev),
+                                                rx_queues, tx_queues,
+                                                irq_timeout);
                     break;
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");

@@ -15,6 +15,7 @@ SRC_CC = log.cc \
 		 interrupts.cc \
 		 device.cc \
 		 driver/e1000/e1000.cc \
+		 driver/igb/igb.cc \
 		 driver/ixgbe/ixgbe.cc
 
 # Include package-private header files
