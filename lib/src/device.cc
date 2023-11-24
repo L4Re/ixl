@@ -94,14 +94,14 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
     // Read PCI configuration space to obtain initial device information.
     uint32_t vendor_id;
     uint32_t device_id;
-    
+
     // We search for Ethernet devices only (class 0x2, subclass 0x0)
     L4vbus::Pci_dev dev = pci_get_dev(vbus, dev_idx, 0x02, 0x00);
     check_err(dev.cfg_read(0, &vendor_id, 16), "Failed to read PCI vendor ID");
     check_err(dev.cfg_read(2, &device_id, 16), "Failed to read PCI device ID");
 
     // Choose driver according to vendor / device ID combination
-    // For now, we will exclude all unknown devices by default, even though a 
+    // For now, we will exclude all unknown devices by default, even though a
     // particular driver might work. With more time and testing, we can add
     // more supported devices.
     switch (vendor_id) {
@@ -140,4 +140,6 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                       vendor_id);
             break;
     }
+
+    return NULL;
 }
