@@ -8,14 +8,10 @@
 #include <assert.h>
 
 #ifndef IXL_NDEBUG
+
 #define ixl_debug(fmt, ...) do {\
     fprintf(stderr, "[DEBUG] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 } while(0)
-#else
-#define ixl_debug(fmt, ...) do {} while(0)
-#undef assert
-#define assert(expr) (void) (expr)
-#endif
 
 #define ixl_info(fmt, ...) do {\
     fprintf(stdout, "[INFO ] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
@@ -29,6 +25,27 @@
     fprintf(stderr, "[ERROR] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
     abort();\
 } while(0)
+
+#else
+
+#define ixl_debug(fmt, ...) do {} while(0)
+
+#undef assert
+#define assert(expr) (void) (expr)
+
+#define ixl_info(fmt, ...) do {\
+    fprintf(stdout, "[INFO ] " fmt "\n", ##__VA_ARGS__);\
+} while(0)
+
+#define ixl_warn(fmt, ...) do {\
+    fprintf(stderr, "[WARN ] " fmt "\n", ##__VA_ARGS__);\
+} while(0)
+
+#define ixl_error(fmt, ...) do {\
+    fprintf(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__);\
+} while(0)
+
+#endif
 
 #define check_err(expr, op) ({\
     int64_t result = (int64_t) (expr);\

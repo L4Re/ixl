@@ -1,7 +1,17 @@
 PKGDIR ?= ../..
 L4DIR  ?= $(PKGDIR)/../..
 
+# Check whether release flag is set
+ifeq ($(CONFIG_IXL_NDEBUG), y)
+    DEFINES += -DIXL_NDEBUG
+endif
+
+# If chosen by the user, add jemalloc to the end of the libraries, catching all
+# memory allocation calls.
 REQUIRES_LIBS = libio-vbus libc_support_misc
+ifeq ($(CONFIG_IXL_JEMALLOC),y)
+REQUIRES_LIBS += jemalloc
+endif
 
 # Apparently, we need to define __STDC_LIMIT_MACROS to get all definitions from
 # stdint.h, see also https://stackoverflow.com/questions/25561677/intmax-max-was-not-declared-in-this-scope?noredirect=1&lq=1
