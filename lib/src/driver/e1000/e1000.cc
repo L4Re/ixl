@@ -1,9 +1,9 @@
-/***************************************************************************** 
- *                                                                           * 
- * E1000_device - Implementation of a simple e1000 NIC device driver on L4.  * 
- *                                                                           * 
- * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>   * 
- *                                                                           * 
+/*****************************************************************************
+ *                                                                           *
+ * E1000_device - Implementation of a simple e1000 NIC device driver on L4.  *
+ *                                                                           *
+ * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>   *
+ *                                                                           *
  *****************************************************************************/
 
 
@@ -42,11 +42,11 @@ int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
 
         uint32_t reg_value = 0 | (cur_addr << E1000_EERD_ADDR_SHIFT) |
                                  E1000_EERD_START;
-        
+
         // Trigger the EEPROM read by writing the EERD register, then wait
         // for the result to show up
         set_reg32(baddr[0], E1000_EERD, reg_value);
-        
+
         for (j = 0; j < EEPROM_MAX_WAIT_MS; j++) {
             usleep(1000);
             reg_value = get_reg32(baddr[0], E1000_EERD);
@@ -57,9 +57,9 @@ int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
         }
 
         // Check whether we reached the timeout
-        if (j == EEPROM_MAX_WAIT_MS)    
+        if (j == EEPROM_MAX_WAIT_MS)
             return -1;
-    
+
         // Save the data from the EERD register
         buf[i] = (uint16_t) (reg_value >> E1000_EERD_DATA_SHIFT);
     }
@@ -156,7 +156,7 @@ void E1000_device::start_tx_queue(int queue_id) {
     (void) queue_id;
 
     uint32_t tctl = get_reg32(baddr[0], E1000_TCTL);
-    
+
     // Clear collision threshold and collision distance bitmask
     tctl &= ~(E1000_TCTL_CT | E1000_TCTL_COLD);
 
@@ -171,18 +171,18 @@ void E1000_device::start_tx_queue(int queue_id) {
 
 void E1000_device::init_rx(void) {
     // For now we assume that this function is only called immediately after
-    // a reset operation with RX and TX disabled, so we do not need to 
+    // a reset operation with RX and TX disabled, so we do not need to
     // disable them again here.
 
     // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_rx_queues; i++) {
         ixl_debug("initializing rx queue %d", i);
-        
+
         struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + i;
-        
+
         uint32_t ring_size_bytes = NUM_RX_QUEUE_ENTRIES * sizeof(struct e1000_rx_desc);
         struct dma_memory mem = memory_allocate_dma(*this, ring_size_bytes);
-        
+
         // neat trick from Snabb: initialize to 0xFF to prevent rogue memory
         // accesses on premature DMA activation
         memset(mem.virt, -1, ring_size_bytes);
@@ -195,7 +195,7 @@ void E1000_device::init_rx(void) {
         queue->num_entries = NUM_RX_QUEUE_ENTRIES;
         queue->rx_index    = 0;
         queue->descriptors = (struct e1000_rx_desc*) mem.virt;
-        
+
         // Allocate packet buffers and set backing memory for descriptors
         // 2048 as pktbuf size is strictly speaking incorrect:
         // we need a few headers (1 cacheline), so there's only 1984 bytes
@@ -281,7 +281,7 @@ void E1000_device::wait_for_link(void) {
     ixl_info("Waiting for link...");
     int32_t max_wait       = 10000000; // 10 seconds in us
     uint32_t poll_interval = 100000;   // 10 ms in us
-    
+
     while (!get_link_speed() && max_wait > 0) {
         usleep(poll_interval);
         max_wait -= poll_interval;
@@ -307,7 +307,7 @@ void E1000_device::reset_and_init(void) {
 
     // Issue the reset command (done by setting the reset bit in the ctrl reg)
     uint32_t ctrl_reg = get_reg32(baddr[0], E1000_CTRL);
-    
+
     // Set automatic link speed detection and force link to come up
     ctrl_reg |= E1000_CTRL_SLU | E1000_CTRL_ASDE;
     ctrl_reg &= ~(E1000_CTRL_LRST | E1000_CTRL_FRCSPD | E1000_CTRL_FRCDPX);
@@ -324,7 +324,7 @@ void E1000_device::reset_and_init(void) {
     // Get the NIC's MAC address
     (void) get_mac_addr();
 
-    ixl_info("Using MAC address %02x:%02x:%02x:%02x:%02x:%02x", 
+    ixl_info("Using MAC address %02x:%02x:%02x:%02x:%02x:%02x",
              mac_addr.addr[0], mac_addr.addr[1], mac_addr.addr[2],
              mac_addr.addr[3], mac_addr.addr[4], mac_addr.addr[5]);
 
@@ -366,7 +366,7 @@ void E1000_device::reset_and_init(void) {
     wait_for_link();
 }
 
-uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[], 
+uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                                 uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
     bool interrupts_enabled = interrupts.interrupts_enabled;
@@ -432,19 +432,19 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
             queue->virtual_addresses[rx_index] = new_buf;
             bufs[buf_index] = buf;
-            
-            // want to read the next one in the next iteration, 
+
+            // want to read the next one in the next iteration,
             // but we still need the last/current to update RDT later
             last_rx_index = rx_index;
             rx_index = wrap_ring(rx_index, queue->num_entries);
-        } 
+        }
         else {
             break;
         }
     }
     if (rx_index != last_rx_index) {
         // tell hardware that we are done
-        // this is intentionally off by one, otherwise we'd set RDT=RDH if 
+        // this is intentionally off by one, otherwise we'd set RDT=RDH if
         // we are receiving faster than packets are coming in
         // RDT=RDH means queue is full
         set_reg32(baddr[0], E1000_RDT, last_rx_index);
@@ -495,7 +495,7 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
         // tx_index is always ahead of clean (invariant of our queue)
         int32_t cleanable = queue->tx_index - clean_index;
-        if (cleanable < 0) { 
+        if (cleanable < 0) {
             // handle wrap-around
             cleanable = queue->num_entries + cleanable;
         }
@@ -558,7 +558,7 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // no fancy offloading stuff - only the total payload length
         // implement offloading flags here:
         //      * ip checksum offloading is trivial: just set the offset
-        //      * tcp/udp checksum offloading is more annoying, 
+        //      * tcp/udp checksum offloading is more annoying,
         //        you have to precalculate the pseudo-header checksum
         // TODO: Implement TCP / UDP offloading here...
     }
@@ -580,7 +580,7 @@ void E1000_device::read_stats(struct device_stats *stats) {
                         (((uint64_t) get_reg32(baddr[0], E1000_GORCH)) << 32);
     uint64_t tx_bytes = get_reg32(baddr[0], E1000_GOTCL) +
                         (((uint64_t) get_reg32(baddr[0], E1000_GOTCH)) << 32);
-    
+
     // Sum up the counters if a stat object was given
     if (stats != NULL) {
         stats->rx_pkts  += rx_pkts;
@@ -595,7 +595,7 @@ void E1000_device::set_promisc(bool enabled) {
     if (enabled) {
         ixl_info("enabling promisc mode");
         set_flags32(baddr[0], E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
-    } 
+    }
     else {
         ixl_info("disabling promisc mode");
         clear_flags32(baddr[0], E1000_RCTL, E1000_RCTL_MPE | E1000_RCTL_UPE);
@@ -606,7 +606,7 @@ void E1000_device::set_promisc(bool enabled) {
 uint32_t E1000_device::get_link_speed(void) {
     uint32_t status = get_reg32(baddr[0], E1000_STATUS);
 
-    // Actually, this is the wrong way of detecting whether the link is up, 
+    // Actually, this is the wrong way of detecting whether the link is up,
     // since we set the force-link flag during initialization, so the NIC will
     // always report a valid link.
     // We could fix this in two different ways:
@@ -635,7 +635,7 @@ struct mac_address E1000_device::get_mac_addr(void) {
     if (! mac_init) {
         if (read_eeprom(0x0, 3, (uint16_t *) &mac_addr.addr) != 0)
             ixl_error("Failed to read MAC address from EEPROM.");
-    
+
         mac_init = true;
     }
 
@@ -653,14 +653,14 @@ E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev&& pci_dev,
                                        uint16_t tx_queues,
                                        int irq_timeout) {
 
-    // Allocate memory for the ixgbe device that will be returned               
+    // Allocate memory for the ixgbe device that will be returned
     // TODO: Check whether these IRQ settings are meaningful for E1000.
-    E1000_device *dev = new E1000_device(std::move(pci_dev),          
-                                         rx_queues, tx_queues,                  
-                                         (irq_timeout != 0),                    
+    E1000_device *dev = new E1000_device(std::move(pci_dev),
+                                         rx_queues, tx_queues,
+                                         (irq_timeout != 0),
                                          0x028, // itr_rate (10ys => 97600 INT/s)
-                                         irq_timeout);                          
-                                                                                
-    dev->reset_and_init();                                                      
-    return dev;  
+                                         irq_timeout);
+
+    dev->reset_and_init();
+    return dev;
 }

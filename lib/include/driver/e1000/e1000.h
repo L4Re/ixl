@@ -31,7 +31,7 @@ public:
     static const int MAX_TX_QUEUE_ENTRIES = 256;
 
     // The sum of these constants defines the size of the overall memory pool
-    // used for receiving / sending packets. For now, we set it to the 
+    // used for receiving / sending packets. For now, we set it to the
     // maximum values supported.
     static const int NUM_RX_QUEUE_ENTRIES = 256;
     static const int NUM_TX_QUEUE_ENTRIES = 256;
@@ -89,10 +89,10 @@ private:
 
         // Array of descriptors backed by descr_mem
         volatile struct e1000_rx_desc* descriptors;
-        
+
         // DMA'able memory for storing incoming packets
         struct mempool* mempool;
-        
+
         // No. of descriptors in the queue
         uint16_t num_entries;
         // position we are reading from
@@ -108,7 +108,7 @@ private:
 
         // Array of descriptors backed by descr_mem
         volatile struct e1000_tx_desc* descriptors;
-        
+
         // No. of descriptors in the queue
         uint16_t num_entries;
         // position to clean up descriptors that where sent out by the nic
@@ -137,7 +137,7 @@ private:
         interrupts.interrupts_enabled = irq_enabled;
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout            = l4_timeout(l4tos, l4tos);
-    
+
         pci_dev  = dev;
 
         // Map BAR0 region
@@ -158,12 +158,12 @@ private:
     }
 
     /***                           Functions                              ***/
-    
+
     /**
      *
      * Read <word_cnt> number of 16-Bit words from the NIC's EEPROM, starting
      * at address <addr>. Note that addressing in the EEPROM is done with an
-     * increment of 2 Bytes. <buf> shall point to an array of uint16_t with 
+     * increment of 2 Bytes. <buf> shall point to an array of uint16_t with
      * a capacity of at least <word_cnt> elements.
      *
      * @param saddr Starting address to read from the NIC's EEPROM.
@@ -180,7 +180,7 @@ private:
      * See also section 13.4.17
      */
     void clear_interrupts(void) {
-        get_reg32(baddr[0], E1000_ICR); 
+        get_reg32(baddr[0], E1000_ICR);
     }
 
     /**
@@ -190,7 +190,7 @@ private:
      */
     void disable_interrupts(void) {
         ixl_debug("Masking off all IRQs for E1000 device");
-        set_reg32(baddr[0], E1000_IMC, 0xffffffff); 
+        set_reg32(baddr[0], E1000_IMC, 0xffffffff);
     }
 
     /**
@@ -217,7 +217,7 @@ private:
     void reset_and_init(void);
 
     /***                        Member variables                          ***/
-    
+
     // MAC address of this device
     struct mac_address mac_addr;
     // Does mac_addr contain a valid value?
