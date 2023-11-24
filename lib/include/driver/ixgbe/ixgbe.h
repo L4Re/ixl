@@ -34,6 +34,16 @@ public:
 
     static const uint64_t INTERRUPT_INITIAL_INTERVAL = 1000 * 1000 * 1000;
 
+    std::string get_driver_name(void) {
+        return("ixl-ixgbe");
+    }
+
+    inline uint32_t get_max_frame_size(void) {
+        // Max. frame size of Ethernet is 1518 and we offload the CRC generation
+        // so software can write four Bytes less...
+        return 1514;
+    }
+
     uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                       uint32_t num_bufs);
 
@@ -64,10 +74,6 @@ public:
                                     uint16_t rx_queues,
                                     uint16_t tx_queues,
                                     int irq_timeout);
-
-    std::string get_driver_name(void) {
-        return("ixl-ixgbe");
-    }
 
 private:
     // allocated for each rx queue, keeps state for the receive function
@@ -119,7 +125,7 @@ private:
         interrupts.interrupts_enabled = irq_enabled;
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout            = l4_timeout(l4tos, l4tos);
-    
+
         pci_dev = dev;
 
         // Map BAR0 region

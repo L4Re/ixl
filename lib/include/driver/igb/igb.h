@@ -52,6 +52,16 @@ public:
 
     static const uint64_t INTERRUPT_INITIAL_INTERVAL = 1000 * 1000 * 1000;
 
+    std::string get_driver_name(void) {
+        return("ixl-igb");
+    }
+
+    inline uint32_t get_max_frame_size(void) {
+        // Max. frame size of Ethernet is 1518 and we offload the CRC generation
+        // so software can write four Bytes less...
+        return 1514;
+    }
+
     uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                       uint32_t num_bufs);
 
@@ -84,10 +94,6 @@ public:
                                 uint16_t tx_queues,
                                 int irq_timeout);
 
-    std::string get_driver_name(void) {
-        return("ixl-igb");
-    }
-
 private:
     // allocated for each rx queue, keeps state for the receive function
     struct igb_rx_queue {
@@ -96,10 +102,10 @@ private:
 
         // Array of descriptors backed by descr_mem
         volatile struct igb_rx_desc* descriptors;
-        
+
         // DMA'able memory for storing incoming packets
         struct mempool* mempool;
-        
+
         // No. of descriptors in the queue
         uint16_t num_entries;
         // position we are reading from
@@ -115,7 +121,7 @@ private:
 
         // Array of descriptors backed by descr_mem
         volatile struct igb_tx_desc* descriptors;
-        
+
         // No. of descriptors in the queue
         uint16_t num_entries;
         // position to clean up descriptors that where sent out by the nic

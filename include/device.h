@@ -40,7 +40,7 @@ struct __attribute__((__packed__)) mac_address {
 
 // advance index with wrap-around
 // this line is the reason why we require a power of two for the queue size
-#define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1)) 
+#define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1))
 
 /**
  * General abstraction for a device managed by an Ixylon driver.
@@ -53,6 +53,11 @@ public:
      * Returns the name of the driver.
      */
     virtual std::string get_driver_name(void) = 0;
+
+    /**
+     * Returns the maximum frame size that the device can currently handle.
+     */
+    virtual inline uint32_t get_max_frame_size(void) = 0;
 
     virtual uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                               uint32_t num_bufs) = 0;
@@ -99,9 +104,9 @@ public:
     }
 
     /**
-     * Creates a new driver instance for a PCI device found on the vbus 
+     * Creates a new driver instance for a PCI device found on the vbus
      * passed to this function. After executing this function, the underlying
-     * device shall be in an operational state and ready to handle send and 
+     * device shall be in an operational state and ready to handle send and
      * receive requests.
      *
      * \param vbus         Virtual device bus that shall be searched for
@@ -119,7 +124,7 @@ public:
 
 protected:
     /*                             Functions                                */
-    
+
     /**
      * Create a DMA space for this device. The DMA space is later on needed
      * when making host memory accessible to the I/O device.
@@ -144,7 +149,7 @@ protected:
     // address of the memory mapping for BAR0. BARs that are not mapped yet
     // are represented by NULL (it is also possible that some BARs are absent).
     uint8_t* baddr[6];
-    
+
     void*    rx_queues;
     void*    tx_queues;
 
