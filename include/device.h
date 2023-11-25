@@ -104,6 +104,17 @@ public:
     }
 
     /**
+     * Binds the receive interrupt for the specified receive queue to the
+     * calling thread. Note that by default, all receive interrupts are bound
+     * to the thread that creates the device object, so if receive operations
+     * are to be executed in a different thread, the thread calling rx_batch
+     * needs to bind to the queue's interrupt first.
+     *
+     * \param qid Index of the receive queue affected by this operation.
+     */
+    void rebind_recv_irq(uint16_t qid);
+
+    /**
      * Creates a new driver instance for a PCI device found on the vbus
      * passed to this function. After executing this function, the underlying
      * device shall be in an operational state and ready to handle send and

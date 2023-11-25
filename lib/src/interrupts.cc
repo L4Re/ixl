@@ -17,6 +17,8 @@
 
 #include <stdio.h>
 
+#include <pthread-l4.h>
+
 #include <l4/re/env>
 #include <l4/re/error_helper>
 
@@ -75,6 +77,13 @@ void Ixl::create_and_bind_irq(unsigned int irqnum, L4::Cap<L4::Irq> *irq,
     // Create an IRQ kernel object so that the cap allocated above points
     // to something meaningful. If this step is omitted, bind will fail.
     L4Re::chksys(L4Re::Env::env()->factory()->create(*irq));
+
+    // This function binds the IRQ to the calling thread by default. If the
+    // thread that is eventually listening on the IRQ is not the caller of
+    // this function, the IRQ has to be rebound later on.
+    L4Re::chksys(l4_error((*irq)->bind_thread(Pthread::L4::cap(pthread_self()),
+                                              0)),
+                 "Failed to bind IRQ to calling thread.");
 
     L4Re::chksys(l4_error(icu->bind(irqnum, *irq)),
                  "Binding interrupt to ICU.");

@@ -1,5 +1,21 @@
+/****************************************************************************
+ *
+ * Implementation of the common functions of an Ixl_device.
+ *
+ * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ */
+
+
+/****************************************************************************
+ *                                                                          *
+ *                           include statements                             *
+ *                                                                          *
+ ****************************************************************************/
+
+
 #include <l4/re/error_helper>
 #include <l4/re/env>
+#include <pthread-l4.h>
 
 #include <l4/vbus/vbus>
 
@@ -10,6 +26,13 @@
 #include "driver/ixgbe/ixgbe.h"
 #include "pci.h"
 
+/****************************************************************************
+ *                                                                          *
+ *                        function implementation                           *
+ *                                                                          *
+ ****************************************************************************/
+
+
 using namespace Ixl;
 
 /* Create a DMA space for this device.                                      */
@@ -19,7 +42,7 @@ void Ixl_device::create_dma_space(void) {
     L4Re::chksys(pci_dev.device(&devinfo));
 
     ixl_debug("dev has %u resources", devinfo.num_resources);
-    
+
     // Iterate through list of device resoures to find the DMA space
     unsigned int i;
     l4vbus_resource_t res;
@@ -41,13 +64,13 @@ void Ixl_device::create_dma_space(void) {
     L4Re::chksys(L4Re::Env::env()->user_factory()->create(dma_cap.get()),
                  "Failed to create DMA space.");
 
-    // This is the step where we bind the DMA domain of the device to the 
+    // This is the step where we bind the DMA domain of the device to the
     // DMA space we just created for this task. The first argument to the
     // assignment operation is the domain_id, i.e. the starting address of
     // the DMA domain found in the set of device resources.
     // TODO: We could also choose the DMA domain of the whole vbus with ~0x0...
-    L4Re::chksys(pci_dev.bus_cap()->assign_dma_domain(res.start, 
-                        L4VBUS_DMAD_BIND | L4VBUS_DMAD_L4RE_DMA_SPACE, 
+    L4Re::chksys(pci_dev.bus_cap()->assign_dma_domain(res.start,
+                        L4VBUS_DMAD_BIND | L4VBUS_DMAD_L4RE_DMA_SPACE,
                         dma_cap.get()),
                         "Failed to bind to device's DMA domain.");
 
@@ -85,6 +108,23 @@ void Ixl_device::setup_icu_cap(void) {
                       icu_info.nr_msis, num_rx_queues);
         }
     }
+}
+
+/* Rebind the IRQ of a receive queue to the calling thread.                 */
+void Ixl_device::rebind_recv_irq(uint16_t qid) {
+    if (qid >= num_rx_queues) {
+        ixl_warn("Invalid qid paramter (out of bounds).");
+        return;
+    }
+
+    if (! interrupts.interrupts_enabled) {
+        ixl_info("Ignoring request as IRQs are disabled globally.");
+        return;
+    }
+
+    L4::Cap<L4::Irq> irq = interrupts.queues[qid].irq;
+    L4Re::chksys(l4_error(irq->bind_thread(Pthread::L4::cap(pthread_self()), 0)),
+                 "Failed to bind IRQ to calling thread.");
 }
 
 /* Create and initialize the driver for a certain device.                   */

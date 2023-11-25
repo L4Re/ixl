@@ -30,8 +30,7 @@ void E1000_device::enable_rx_interrupt(void) {
     set_reg32(baddr[0], E1000_RDTR, 0);
 
     // Unmask and enable the receive timer interrupt cause
-    clear_flags32(baddr[0], E1000_IMC, E1000_ICR_RXT0);
-    set_reg32(baddr[0], E1000_IMS, E1000_ICR_RXT0);
+    set_flags32(baddr[0], E1000_IMS, E1000_ICR_RXT0);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -131,7 +130,9 @@ void E1000_device::setup_interrupts(void) {
         // Create and bind the IRQ to the vICU of the PCI device's bus
         create_and_bind_irq(irq, &interrupts.queues[0].irq, interrupts.vicu);
 
-        L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(irq), l4_utcb()),
+        // L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(irq), l4_utcb()),
+        //             "Failed to unmask interrupt");
+        L4Re::chksys(l4_ipc_error(interrupts.queues[0].irq->unmask(), l4_utcb()),
                      "Failed to unmask interrupt");
         ixl_info("Attached to legacy IRQ %u", irq);
     }
@@ -357,7 +358,8 @@ void E1000_device::reset_and_init(void) {
     usleep(1000);
 
     // Enable IRQ for receiving packets
-    enable_rx_interrupt();
+    if (interrupts.interrupts_enabled)
+        enable_rx_interrupt();
 
     // Enable promiscuous mode by default (facilitates testing)
     set_promisc(true);
