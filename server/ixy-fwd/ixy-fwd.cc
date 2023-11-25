@@ -33,11 +33,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Get vbus capability received on startup                                  
-    auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),   
-                             "Get vbus capability.", -L4_ENOENT); 
+    // Get vbus capability received on startup
+    auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
+                             "Get vbus capability.", -L4_ENOENT);
 
-    Ixl::Ixl_device* dev1 = Ixl::Ixl_device::ixl_init(vbus, 
+    Ixl::Ixl_device* dev1 = Ixl::Ixl_device::ixl_init(vbus,
                                                       atoi(argv[1]), 1, 1, -1);
     Ixl::Ixl_device* dev2 = Ixl::Ixl_device::ixl_init(vbus,
                                                       atoi(argv[2]), 1, 1, 0);

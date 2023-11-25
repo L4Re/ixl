@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
     // Get vbus capability received on startup
     auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
-                             "Get vbus capability.", -L4_ENOENT);  
+                             "Get vbus capability.", -L4_ENOENT);
 
     Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
 
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
         for (uint32_t i = 0; i < num_rx && n_packets != 0; i++) {
 
             fprintf(stderr, "===== Packet Received at %06ld:%06ld "
-                    "(Payload length %u Bytes) =====\n", 
+                    "(Payload length %u Bytes) =====\n",
                     tv.tv_sec, tv.tv_usec, bufs[i]->size);
             ixl_hexdump(bufs[i]->data, bufs[i]->size);
             fprintf(stderr, "=============================================="
