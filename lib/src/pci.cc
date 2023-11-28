@@ -109,7 +109,7 @@ l4_uint64_t Ixl::get_bar_size(L4vbus::Pci_dev& dev, unsigned int idx) {
     // Save original content of BAR
     L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb_old, 32));
     L4Re::chksys(dev.cfg_read(0x14 + idx * 4, &msb_old, 32));
-    
+
     // Check if the device is memory but 32-bit addressed (Bit 2 != 1))
     if (! (lsb_old & 0x00000004)) {
         // Write all-ones to the register and read back the BAR value
@@ -154,7 +154,7 @@ l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx) {
     l4_uint32_t msb;
 
     L4Re::chksys(dev.cfg_read(0x10 + idx * 4, &lsb, 32));
-    
+
     // Always mask the lower bits of the LSB (mapping is page-aligned)
 
     // I/O Spaces are always 32-bit addressed
@@ -174,7 +174,7 @@ l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx) {
 
 void Ixl::enable_dma(L4vbus::Pci_dev& dev) {
     l4_uint32_t cmd_reg = 0;                  // Value of PCI command register
-    
+
     // write to the command register (offset 4) in the PCIe config space
     // bit 2 is "bus master enable", see PCIe 3.0 specification section 7.5.1.1
     L4Re::chksys(dev.cfg_read(0x4, &cmd_reg, 16));
@@ -189,14 +189,14 @@ uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx) {
     l4_uint64_t bar_addr;         // Physical address contained in BAR0
 
     enable_dma(dev);
-    
+
     // Obtain information about the device (e.g. no. of resources & their types)
     // This is only for debugging purposes, though.
     l4vbus_device_t devinfo;
     L4Re::chksys(dev.device(&devinfo));
 
     ixl_debug("Dev has %u resources", devinfo.num_resources);
-    
+
     iomem_size = get_bar_size(dev, idx);
     bar_addr   = get_bar_addr(dev, idx);
 
@@ -207,8 +207,8 @@ uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx) {
             L4::cap_reinterpret_cast<L4Re::Dataspace>(dev.bus_cap());
 
     // Ok, so the Vbus of the device appears to also act as a dataspace that
-    // allows for attaching all I/O memory resources of a device. We'll use 
-    // that to map the I/O memory of the PCI device (which is described in 
+    // allows for attaching all I/O memory resources of a device. We'll use
+    // that to map the I/O memory of the PCI device (which is described in
     // the BARs).
     //
     // The Vbus spans the entire address space of the machine (although we can
@@ -216,7 +216,7 @@ uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx) {
     // Hence, we use the physical address contained inside the BAR as an offset
     // into the special Vbus dataspace.
     L4Re::chksys(L4Re::Env::env()->rm()->attach(
-        &iomem_addr, l4_round_page(iomem_size), 
+        &iomem_addr, l4_round_page(iomem_size),
         L4Re::Rm::F::Search_addr | L4Re::Rm::F::Cache_uncached | L4Re::Rm::F::RW,
         L4::Ipc::make_cap_rw(ds), bar_addr, L4_PAGESHIFT));
 
