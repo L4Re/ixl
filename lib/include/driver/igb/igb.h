@@ -192,7 +192,7 @@ private:
      * See also section 13.4.17
      */
     void clear_interrupts(void) {
-        // This is a noop with MSI-X as used for Igb
+        get_reg32(baddr[0], IGB_EICR);
     }
 
     /**
@@ -204,6 +204,8 @@ private:
         ixl_debug("Masking off all IRQs for Igb device");
         set_reg32(baddr[0], IGB_IMC, 0xffffffff);
         set_reg32(baddr[0], IGB_EIMC, 0xffffffff);
+
+        clear_interrupts();
     }
 
     /**

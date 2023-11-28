@@ -1,9 +1,9 @@
-/***************************************************************************** 
- *                                                                           * 
- * Igb_device - Implementation of a simple Igb NIC device driver on L4.      * 
- *                                                                           * 
- * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>   * 
- *                                                                           * 
+/*****************************************************************************
+ *                                                                           *
+ * Igb_device - Implementation of a simple Igb NIC device driver on L4.      *
+ *                                                                           *
+ * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>   *
+ *                                                                           *
  *****************************************************************************/
 
 
@@ -23,14 +23,40 @@ using namespace Ixl;
 
 /* Enables a receive interrupt of the NIC.                                  */
 void Igb_device::enable_rx_interrupt(uint16_t qid) {
+    // Get MSI-X vector allocated for the respective RX queue
     uint32_t msi_vec = interrupts.queues[qid].msi_vec;
+    // Current content of IVAR register
+    uint32_t ivar;
+
+    // Allocate an IRQ vector via the IVAR reg, see also sections
+    // 7.3.2 and 8.8.15 of the I350 programmers manual
+    ivar = get_reg32(baddr[0], IGB_IVAR0 + 4 * (qid / 2));
+
+    if ((qid % 2) == 0) {
+        // Restrict queue ID to 5 bit in length and set valid bit
+        // for the new entry in the IVAR reg
+        ivar    = ivar | (msi_vec & 0x0000001f) | 0x00000080;
+
+        // Set new IVAR value
+        set_reg32(baddr[0], IGB_IVAR0 + 4 * (qid / 2), ivar);
+    }
+    else {
+        // Restrict queue ID to 5 bit in length and set valid bit
+        // for the new entry in the IVAR reg
+        uint32_t vec = (msi_vec & 0x0000001f) << 16;
+        ivar         = ivar | vec | 0x00800000;
+
+        // Set new IVAR value
+        set_reg32(baddr[0], IGB_IVAR0 + 4 * (qid / 2), ivar);
+    }
 
     // Limit the ITR to prevent IRQ storms
     set_reg32(baddr[0], IGB_EITR + 4 * msi_vec,
               (interrupts.itr_rate & 0x00001fff) << 2);
 
     // Unmask and enable the receive timer interrupt cause
-    clear_flags32(baddr[0], IGB_EIMC, 1 << msi_vec);
+    set_flags32(baddr[0], IGB_EIAC, 1 << msi_vec);
+    // set_flags32(baddr[0], IGB_EIAM, 1 << msi_vec);
     set_flags32(baddr[0], IGB_EIMS, 1 << msi_vec);
 }
 
@@ -40,7 +66,6 @@ void Igb_device::disable_rx_interrupt(uint16_t qid) {
 
     // Unmask and enable the receive timer interrupt cause
     set_flags32(baddr[0], IGB_EIMC, 1 << msi_vec);
-    clear_flags32(baddr[0], IGB_EIMS, 1 << msi_vec);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -51,11 +76,11 @@ int Igb_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
 
         uint32_t reg_value = 0 | (cur_addr << IGB_EERD_ADDR_SHIFT) |
                                  IGB_EERD_START;
-        
+
         // Trigger the EEPROM read by writing the EERD register, then wait
         // for the result to show up
         set_reg32(baddr[0], IGB_EERD, reg_value);
-        
+
         for (j = 0; j < EEPROM_MAX_WAIT_MS; j++) {
             usleep(1000);
             reg_value = get_reg32(baddr[0], IGB_EERD);
@@ -66,9 +91,9 @@ int Igb_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
         }
 
         // Check whether we reached the timeout
-        if (j == EEPROM_MAX_WAIT_MS)    
+        if (j == EEPROM_MAX_WAIT_MS)
             return -1;
-    
+
         // Save the data from the EERD register
         buf[i] = (uint16_t) (reg_value >> IGB_EERD_DATA_SHIFT);
     }
@@ -92,7 +117,6 @@ void Igb_device::setup_interrupts(void) {
         uint32_t bir;               // BAR location of MSI-X table
         uint32_t table_offs;        // Offset of MSI-X table in BAR
         uint32_t table_size;        // Size of MSI-X table
-        uint32_t ivar;              // Content of IVAR register
 
         ixl_info("Using MSI-X interrupts...");
         interrupts.interrupt_type = IXL_IRQ_MSIX;
@@ -105,50 +129,13 @@ void Igb_device::setup_interrupts(void) {
             baddr[bir] = pci_map_bar(pci_dev, bir);
         }
 
-        // Configure the NIC to use multiple MSI-X mode (one IRQ per queue),
-        // also set other flags recommended in section 7.3.3.11
-        // Also ensure that SR-IOV is disabled.
-        clear_flags32(baddr[0], IGB_SRIOV, IGB_SRIOV_EN);
-        set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX |
-                                        IGB_GPIE_NSICR |
-                                        IGB_GPIE_EIAME |
-                                        IGB_GPIE_PBA);
-
+        // For now we will do a 1:1 mapping between RX queue number and the
+        // MSI-X vector allocated for the respective queue
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
-            // MSI vector that we allocate. For now we will do a 1:1 mapping
-            // between queue number and MSI vector index
-            uint32_t          msi_vec;
             // L4 representation of the MSI vector. We need to add flags to
             // use L4's API correctly...
             uint32_t          msi_vec_l4;
             l4_icu_msi_info_t msi_info;
-
-            // Allocate an IRQ vector via the IVAR reg, see also sections
-            // 7.3.2 and 8.8.15 of the I350 programmers manual
-            ivar = get_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2);
-
-            if ((rq % 2) == 0) {
-                // Restrict queue ID to 5 bit in length and set valid bit
-                // for the new entry in the IVAR reg
-                msi_vec = rq & 0x0000001f;
-                ivar    = ivar | msi_vec | 0x00000080;
-
-                // Set new IVAR value
-                set_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2, ivar);
-            }
-            else {
-                // Restrict queue ID to 5 bit in length and set valid bit
-                // for the new entry in the IVAR reg
-                msi_vec = (rq & 0x0000001f) << 16;
-                ivar    = ivar | msi_vec | 0x00800000;
-
-                // Set new IVAR value
-                set_reg32(baddr[0], IGB_IVAR0 + 4 * rq / 2, ivar);
-            }
-
-            // Create and bind the IRQ to the vICU of the PCI device's bus
-            ixl_debug("MSI-X vector allocated for RX queue %u is %u",
-                      rq, rq);
 
             // This is what took me three hours to realize: In the L4Re API,
             // the same interface is used to handle legacy IRQs and MSIs.
@@ -164,7 +151,7 @@ void Igb_device::setup_interrupts(void) {
             L4Re::chksys(interrupts.vicu->msi_info(msi_vec_l4, source,
                                                    &msi_info),
                          "Failed to retrieve MSI info.");
-            ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x\n",
+            ixl_debug("MSI info: vector = 0x%x addr = %llx, data = %x",
                       rq, msi_info.msi_addr, msi_info.msi_data);
 
             // PCI-enable of MSI-X
@@ -174,12 +161,16 @@ void Igb_device::setup_interrupts(void) {
             L4Re::chksys(l4_ipc_error(interrupts.vicu->unmask(msi_vec_l4),
                                                               l4_utcb()),
                          "Failed to unmask interrupt");
-            ixl_debug("Attached to MSI-X %u", rq);
+
+            ixl_debug("MSI-X vector allocated for RX queue %u is %u",
+                      rq, rq);
 
             interrupts.queues[rq].moving_avg.length = 0;
             interrupts.queues[rq].moving_avg.index  = 0;
             interrupts.queues[rq].msi_vec           = rq;
             interrupts.queues[rq].interval = INTERRUPT_INITIAL_INTERVAL;
+
+            ixl_debug("Attached to MSI-X %u", rq);
         }
     }
     else {
@@ -190,7 +181,6 @@ void Igb_device::setup_interrupts(void) {
         interrupts.interrupts_enabled = false;
         return;
     }
-
 }
 
 void Igb_device::init_link(void) {
@@ -257,7 +247,7 @@ void Igb_device::start_tx_queue(int queue_id) {
     set_flags32(baddr[0], IGB_TXDCTL0, IGB_TXDCTL_EN);
 
     uint32_t tctl = get_reg32(baddr[0], IGB_TCTL);
-    
+
     // Clear collision threshold bitmask
     tctl &= ~IGB_TCTL_CT;
 
@@ -270,7 +260,7 @@ void Igb_device::start_tx_queue(int queue_id) {
 
 void Igb_device::init_rx(void) {
     // For now we assume that this function is only called immediately after
-    // a reset operation with RX and TX disabled, so we do not need to 
+    // a reset operation with RX and TX disabled, so we do not need to
     // disable them again here.
 
     // Disable VLAN filtering as we do not support it anyways
@@ -279,16 +269,16 @@ void Igb_device::init_rx(void) {
     // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_rx_queues; i++) {
         ixl_debug("initializing rx queue %d", i);
-       
+
         // Instruct NIC to drop packets if no RX descriptors are available
         // FIXME: When using multiple RX queues, choose the rights SRRCTL reg
         set_flags32(baddr[0], IGB_SRRCTL0, IGB_SRRCTL_DREN);
 
         struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + i;
-        
+
         uint32_t ring_size_bytes = NUM_RX_QUEUE_ENTRIES * sizeof(struct igb_rx_desc);
         struct dma_memory mem = memory_allocate_dma(*this, ring_size_bytes);
-        
+
         // neat trick from Snabb: initialize to 0xFF to prevent rogue memory
         // accesses on premature DMA activation
         memset(mem.virt, -1, ring_size_bytes);
@@ -358,7 +348,7 @@ void Igb_device::wait_for_link(void) {
     ixl_info("Waiting for link...");
     int32_t max_wait       = 10000000; // 10 seconds in us
     uint32_t poll_interval = 100000;   // 10 ms in us
-    
+
     while (!get_link_speed() && max_wait > 0) {
         usleep(poll_interval);
         max_wait -= poll_interval;
@@ -371,7 +361,7 @@ void Igb_device::wait_for_link(void) {
 
 /* Reset the device and bring up the link again in a fresh state            */
 void Igb_device::reset_and_init(void) {
-    ixl_info("Resetting E1000 device.");
+    ixl_info("Resetting Igb device.");
 
     // Prevent device from sending any more IRQs
     disable_interrupts();
@@ -384,11 +374,11 @@ void Igb_device::reset_and_init(void) {
 
     // Issue the reset command (done by setting the reset bit in the ctrl reg)
     uint32_t ctrl_reg = get_reg32(baddr[0], IGB_CTRL);
-    
+
     // Set automatic link speed detection and force link to come up
     ctrl_reg |= IGB_CTRL_SLU;
     ctrl_reg &= ~(IGB_CTRL_FRCSPD | IGB_CTRL_FRCDPX);
-    set_reg32(baddr[0], IGB_CTRL, ctrl_reg | IGB_CTRL_PRT_RST | 
+    set_reg32(baddr[0], IGB_CTRL, ctrl_reg | IGB_CTRL_PRT_RST |
                                              IGB_CTRL_DEV_RST |
                                              IGB_CTRL_PHY_RST);
     // Wait for NIC to read default settings from EEPROM
@@ -400,10 +390,13 @@ void Igb_device::reset_and_init(void) {
 
     ixl_info("Reset completed, starting init phase.");
 
+    // Assure that SR-IOV is disabled.
+    clear_flags32(baddr[0], IGB_SRIOV, IGB_SRIOV_EN);
+
     // Get the NIC's MAC address
     (void) get_mac_addr();
 
-    ixl_info("Using MAC address %02x:%02x:%02x:%02x:%02x:%02x", 
+    ixl_info("Using MAC address %02x:%02x:%02x:%02x:%02x:%02x",
              mac_addr.addr[0], mac_addr.addr[1], mac_addr.addr[2],
              mac_addr.addr[3], mac_addr.addr[4], mac_addr.addr[5]);
 
@@ -437,8 +430,12 @@ void Igb_device::reset_and_init(void) {
 
     // Enable IRQ for receiving packets
     if (interrupts.interrupts_enabled) {
-        // Enable auto-clearing for all possible (25) MSIs
-        set_reg32(baddr[0], IGB_EIAC, 0x01ffffff);
+        // Configure the NIC to use multiple MSI-X mode (one IRQ per queue),
+        // also set other flags recommended in section 7.3.3.11
+        set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX |
+                                        IGB_GPIE_NSICR |
+                                        IGB_GPIE_EIAME |
+                                        IGB_GPIE_PBA);
 
         // For now, only enable the IRQ of the first receive queue
         enable_rx_interrupt(0);
@@ -451,7 +448,7 @@ void Igb_device::reset_and_init(void) {
     wait_for_link();
 }
 
-uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[], 
+uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                               uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
     bool interrupts_enabled = interrupts.interrupts_enabled;
@@ -517,14 +514,14 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             // but we still need the last/current to update RDT later
             last_rx_index = rx_index;
             rx_index = wrap_ring(rx_index, queue->num_entries);
-        } 
+        }
         else {
             break;
         }
     }
     if (rx_index != last_rx_index) {
         // tell hardware that we are done
-        // this is intentionally off by one, otherwise we'd set RDT=RDH if 
+        // this is intentionally off by one, otherwise we'd set RDT=RDH if
         // we are receiving faster than packets are coming in
         // RDT=RDH means queue is full
         set_reg32(baddr[0], IGB_RDT, last_rx_index);
@@ -575,7 +572,7 @@ uint32_t Igb_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
         // tx_index is always ahead of clean (invariant of our queue)
         int32_t cleanable = queue->tx_index - clean_index;
-        if (cleanable < 0) { 
+        if (cleanable < 0) {
             // handle wrap-around
             cleanable = queue->num_entries + cleanable;
         }
@@ -638,7 +635,7 @@ uint32_t Igb_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // no fancy offloading stuff - only the total payload length
         // implement offloading flags here:
         //      * ip checksum offloading is trivial: just set the offset
-        //      * tcp/udp checksum offloading is more annoying, 
+        //      * tcp/udp checksum offloading is more annoying,
         //        you have to precalculate the pseudo-header checksum
         // TODO: Implement TCP / UDP offloading here...
     }
@@ -660,7 +657,7 @@ void Igb_device::read_stats(struct device_stats *stats) {
                         (((uint64_t) get_reg32(baddr[0], IGB_GORCH)) << 32);
     uint64_t tx_bytes = get_reg32(baddr[0], IGB_GOTCL) +
                         (((uint64_t) get_reg32(baddr[0], IGB_GOTCH)) << 32);
-    
+
     // Sum up the counters if a stat object was given
     if (stats != NULL) {
         stats->rx_pkts  += rx_pkts;

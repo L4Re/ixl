@@ -84,6 +84,8 @@ struct igb_tx_desc {
 #define IGB_EIMS      0x01524       /* Extended IRQ mask set                */
 #define IGB_EIMC      0x01528       /* Extended IRQ mask clear              */
 #define IGB_EIAC      0x0152C       /* Extended IRQ auto clear              */
+#define IGB_EIAM      0x01530       /* Extended IRQ auto mask enable        */
+#define IGB_EICR      0x01580       /* Extended IRQ cause                   */
 #define IGB_EITR      0x01680       /* Extended IRQ throttle rate (base)    */
 #define IGB_IVAR0     0x01700       /* IRQ vector allocation register 0     */
 
