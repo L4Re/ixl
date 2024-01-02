@@ -29,8 +29,11 @@ void E1000_device::enable_rx_interrupt(void) {
     // Configure the NIC to fire an MSI every time a packet is received
     set_reg32(baddr[0], E1000_RDTR, 0);
 
-    // Unmask and enable the receive timer interrupt cause
-    set_flags32(baddr[0], E1000_IMS, E1000_ICR_RXT0);
+    // Unmask and enable at least RX-related IRQ causes (we may also want to
+    // listen for link status changes in the future...)
+    set_flags32(baddr[0], E1000_IMS, E1000_ICR_RXT0 |
+                                     E1000_ICR_RXDMT0 |
+                                     E1000_ICR_RXO);
 }
 
 /* Read data from the NIC's EEPROM                                          */
@@ -386,9 +389,15 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         interrupt->irq->receive(interrupts.timeout);
         icr = get_reg32(baddr[0], E1000_ICR);
 
-        // Check that we receive the right IRQ, if not return directly
-        if (! (icr & E1000_ICR_RXT0))
-            return 0;
+        // Notify user upon unexpected IRQ causes
+        if (icr & ~E1000_ICR_RXT0) {
+            // For now in production mode, we only print out a warning in case
+            // of an RX queue overflow which is one of the more severe errors...
+            if (icr & E1000_ICR_RXO)
+                ixl_warn("ICR indicates RX overflow (icr = 0x%x)!", icr);
+            else
+                ixl_debug("Received unexpected IRQ (icr = 0x%x)!", icr);
+        }
     }
 
     struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;

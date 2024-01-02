@@ -127,6 +127,8 @@ struct e1000_tx_desc {
 #define E1000_STATUS_SPEED_1000 0x00000080 /* Link speed 1000 Mbps          */
 
 // E1000 interrupt conditions
+#define E1000_ICR_RXDMT0      0x00000010   /* RX descriptor min threshold   */
+#define E1000_ICR_RXO         0x00000040   /* Receiver overrun              */
 #define E1000_ICR_RXT0        0x00000080   /* RX timer IRQ (ring 0)         */
 
 // E1000 EERD register
