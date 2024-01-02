@@ -52,7 +52,7 @@ struct dma_memory Ixl::memory_allocate_dma(Ixl_device& dev, size_t size) {
     //       to call map again...
     L4Re::chksys(dev.get_dma_space()->map(
                         L4::Ipc::make_cap_rw(ret.mem_cap.get()), 0,
-                        &size, L4Re::Dma_space::Attributes::None, 
+                        &size, L4Re::Dma_space::Attributes::None,
                         L4Re::Dma_space::Direction::Bidirectional,
                         &ret.phy),
                         "Failed to setup memory region for DMA.");
@@ -89,12 +89,12 @@ struct mempool* Ixl::memory_allocate_mempool(Ixl_device& dev,
 
     for (uint32_t i = 0; i < num_entries; i++) {
         struct pkt_buf* buf = (struct pkt_buf*) (((uint8_t*) mempool->base_addr) + i * entry_size);
-        
-        // Since the memory inside the DMA window was allocated physically 
+
+        // Since the memory inside the DMA window was allocated physically
         // contiguously, we can just use an offset from the mempool's physical
         // base address to compute the physical address of each packet buffer
         buf->buf_addr_phy = mempool->backing_mem.phy + i * entry_size;
-        
+
         buf->mempool_idx  = i;
         buf->mempool      = mempool;
         buf->size         = 0;
