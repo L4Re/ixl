@@ -103,6 +103,9 @@ private:
         uint16_t num_entries;
         // position we are reading from
         uint16_t rx_index;
+        // True if this RX queue contains descriptors not yet processed by the
+        // driver. We use this flag to skip IRQ receive operations if necessary.
+        bool rx_pending = false;
         // virtual addresses to map descriptors back to their mbuf for freeing
         void* virtual_addresses[];
     };

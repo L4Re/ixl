@@ -378,6 +378,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
     // For non-debug builds insert an additional bounds check for the queue_id
     l4_assert(queue_id == 0);
+    struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;
 
     if (interrupts_enabled) {
         interrupt = &interrupts.queues[queue_id];
@@ -386,7 +387,10 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     if (interrupts_enabled && interrupt->interrupt_enabled) {
         uint32_t icr;           // Value of interrupt cause register
 
-        interrupt->irq->receive(interrupts.timeout);
+        if (! queue->rx_pending)
+            interrupt->irq->receive(interrupts.timeout);
+
+        // Read ICR register regardless of rx_pending status to check for errors
         icr = get_reg32(baddr[0], E1000_ICR);
 
         // Notify user upon unexpected IRQ causes
@@ -399,8 +403,6 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                 ixl_debug("Received unexpected IRQ (icr = 0x%x)!", icr);
         }
     }
-
-    struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;
 
     // rx index we checked in the last run of this function
     uint16_t rx_index = queue->rx_index;
@@ -435,8 +437,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                           "leaking memory or your mempool is too small");
             }
 
-            // reset the descriptor (new buffer address and zero out flags)
-            // TODO: Is the zeroing of flags actually necessary for an E1000?
+            // Reset the descriptor (new buffer address and zero out flags)
             desc_ptr->buf_addr = new_buf->buf_addr_phy + offsetof(struct pkt_buf, data);
             desc_ptr->errors   = 0;
             desc_ptr->status   = 0;
@@ -460,6 +461,13 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // RDT=RDH means queue is full
         set_reg32(baddr[0], E1000_RDT, last_rx_index);
         queue->rx_index = rx_index;
+
+        // Check whether there are unprocessed descriptors left
+        uint32_t head = get_reg32(baddr[0], E1000_RDH);
+        if (head == ((last_rx_index + 1) % (uint32_t) queue->num_entries))
+            queue->rx_pending = false;
+        else
+            queue->rx_pending = true;
     }
 
     // Perform IRQ bookkeeping
