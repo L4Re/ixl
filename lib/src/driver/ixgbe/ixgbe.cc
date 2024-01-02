@@ -566,18 +566,17 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                                 uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
     bool interrupts_enabled = interrupts.interrupts_enabled;
-
-    ixl_debug("Called rx_batch");
+    struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;
 
     if (interrupts_enabled) {
         interrupt = &interrupts.queues[queue_id];
     }
 
     if (interrupts_enabled && interrupt->interrupt_enabled) {
-        interrupt->irq->receive(interrupts.timeout);
+        if (! queue->rx_pending)
+            interrupt->irq->receive(interrupts.timeout);
     }
 
-    struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;
     uint16_t rx_index = queue->rx_index; // rx index we checked in the last run of this function
     uint16_t last_rx_index = rx_index; // index of the descriptor we checked in the last iteration of the loop
     uint32_t buf_index;
@@ -616,11 +615,18 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         }
     }
     if (rx_index != last_rx_index) {
-        // tell hardware that we are done
-        // this is intentionally off by one, otherwise we'd set RDT=RDH if we are receiving faster than packets are coming in
-        // RDT=RDH means queue is full
+        // Tell hardware that we are done. This is intentionally off by one,
+        // otherwise we'd set RDT=RDH if we are receiving faster than packets
+        // are coming in RDT=RDH means queue is full
         set_reg32(baddr[0], IXGBE_RDT(queue_id), last_rx_index);
         queue->rx_index = rx_index;
+
+        // Check whether there are unprocessed descriptors left
+        uint32_t head = get_reg32(baddr[0], IXGBE_RDH(queue_id));
+        if (head == ((last_rx_index + 1) % (uint32_t) queue->num_entries))
+            queue->rx_pending = false;
+        else
+            queue->rx_pending = true;
     }
 
     if (interrupts_enabled) {
