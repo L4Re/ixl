@@ -37,7 +37,7 @@ public:
     static const int MAX_TX_QUEUE_ENTRIES = 256;
 
     // The sum of these constants defines the size of the overall memory pool
-    // used for receiving / sending packets. For now, we set it to the 
+    // used for receiving / sending packets. For now, we set it to the
     // maximum values supported.
     static const int NUM_RX_QUEUE_ENTRIES = 256;
     static const int NUM_TX_QUEUE_ENTRIES = 256;
@@ -110,6 +110,9 @@ private:
         uint16_t num_entries;
         // position we are reading from
         uint16_t rx_index;
+        // True if this RX queue contains descriptors not yet processed by the
+        // driver. We use this flag to skip IRQ receive operations if necessary.
+        bool rx_pending = false;
         // virtual addresses to map descriptors back to their mbuf for freeing
         void* virtual_addresses[];
     };

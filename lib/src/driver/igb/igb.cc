@@ -455,18 +455,19 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
     // For non-debug builds insert an additional bounds check for the queue_id
     l4_assert(queue_id == 0);
+    struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + queue_id;
 
     if (interrupts_enabled) {
         interrupt = &interrupts.queues[queue_id];
     }
 
     if (interrupts_enabled && interrupt->interrupt_enabled) {
-        // We only listen on IRQs caused by this RQ, so nothing to do
-        // afterwards as auto clearing is enabled
-        interrupt->irq->receive(interrupts.timeout);
+        if (! queue->rx_pending) {
+            // We only listen on IRQs caused by this RQ, so nothing to do
+            // afterwards as auto clearing is enabled
+            interrupt->irq->receive(interrupts.timeout);
+        }
     }
-
-    struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + queue_id;
 
     // rx index we checked in the last run of this function
     uint16_t rx_index = queue->rx_index;
@@ -509,8 +510,8 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
             queue->virtual_addresses[rx_index] = new_buf;
             bufs[buf_index] = buf;
-            
-            // want to read the next one in the next iteration, 
+
+            // want to read the next one in the next iteration,
             // but we still need the last/current to update RDT later
             last_rx_index = rx_index;
             rx_index = wrap_ring(rx_index, queue->num_entries);
@@ -526,6 +527,13 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         // RDT=RDH means queue is full
         set_reg32(baddr[0], IGB_RDT, last_rx_index);
         queue->rx_index = rx_index;
+
+        // Check whether there are unprocessed descriptors left
+        uint32_t head = get_reg32(baddr[0], IGB_RDH);
+        if (head == ((last_rx_index + 1) % (uint32_t) queue->num_entries))
+            queue->rx_pending = false;
+        else
+            queue->rx_pending = true;
     }
 
     // Perform IRQ bookkeeping
