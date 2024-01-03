@@ -597,10 +597,18 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             // to an independent representation in the buf (similiar to how DPDK works)
             // need a new mbuf for the descriptor
             struct pkt_buf* new_buf = pkt_buf_alloc(queue->mempool);
-            if (!new_buf) {
-                // we could handle empty mempools more gracefully here, but it would be quite messy...
-                // make your mempools large enough
-                ixl_error("failed to allocate new mbuf for rx, you are either leaking memory or your mempool is too small");
+            if (! new_buf) {
+                // At this point, we just have to trust in this problem not to
+                // be caused by a real packet buffer leak or bug. Hence, we
+                // hope for the best and periodically check whether new buffers
+                // arrived.
+                // We would probably only be able to get rid of this issue by
+                // implementing resizable mempools that grow and shrink with
+                // the application's demands.
+                ixl_warn("failed to allocate new mbuf for rx, you are either "
+                         "leaking memory or your mempool is too small");
+                usleep(1000000);
+                new_buf = pkt_buf_alloc(queue->mempool);
             }
             // reset the descriptor
             desc_ptr->read.pkt_addr = new_buf->buf_addr_phy + offsetof(struct pkt_buf, data);
