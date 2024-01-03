@@ -150,11 +150,17 @@ void Ixl::pkt_buf_free(struct pkt_buf* buf) {
     while (! mempool->free_queue[old_tail].compare_exchange_weak(invalid,
                                                                  buf->mempool_idx)) {
         list_empty = false;
+        invalid    = UINT32_MAX;
         old_tail   = mempool->queue_tail.load();
     }
 
     mempool->queue_tail.compare_exchange_weak(old_tail, buf->mempool_idx);
-    // Try to update head if list was empty
-    if (list_empty)
+
+    // Try to update head if list might have been empty. There may be false
+    // positives for entering this branch e.g. on a newly initialized list.
+    // In such cases however, no changes to the queue head should be done...
+    if (list_empty) {
+        invalid = UINT32_MAX;
         mempool->queue_head.compare_exchange_weak(invalid, buf->mempool_idx);
+    }
 }
