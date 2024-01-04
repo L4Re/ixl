@@ -241,7 +241,7 @@ void Ixgbe_device::start_rx_queue(int queue_id) {
     // is the default MTU of 1518
     // this has to be fixed if jumbo frames are to be supported
     // mempool should be >= the number of rx and tx descriptors for a forwarding application
-    int mempool_size = NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES;
+    int mempool_size = (NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES) << 5;
     queue->mempool = memory_allocate_mempool(*this, mempool_size < MIN_MEMPOOL_ENTRIES ? MIN_MEMPOOL_ENTRIES : mempool_size, PKT_BUF_ENTRY_SIZE);
     if (queue->num_entries & (queue->num_entries - 1)) {
         ixl_error("number of queue entries must be a power of 2");

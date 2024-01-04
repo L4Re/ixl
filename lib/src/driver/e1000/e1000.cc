@@ -208,7 +208,7 @@ void E1000_device::init_rx(void) {
         // MTU of 1518 this has to be fixed if jumbo frames are to be supported
         // mempool should be >= the number of rx and tx descriptors for a
         // forwarding application
-        int mempool_size = NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES;
+        int mempool_size = (NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES) << 5;
         if (mempool_size < MIN_MEMPOOL_ENTRIES)
             mempool_size = MIN_MEMPOOL_ENTRIES;
 
