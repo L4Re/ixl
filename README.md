@@ -16,7 +16,7 @@ systems with tight memory constraints.
 See the table below for a list of device types supported by Ixylon:
 
 | Driver | Supported NIC Types  | Remarks                               |
-|--------|--------------------------------------------------------------|
+|--------|----------------------|---------------------------------------|
 | e1000  | e1000-compliant NICs | -                                     |
 | igb    | Intel I350           | Currently lacks multi-queue support.  |
 | ixgbe  | Intel X520           | L4Re port of this driver is untested. |
