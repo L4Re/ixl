@@ -1,11 +1,13 @@
-#ifndef IXY_MEMORY_H
-#define IXY_MEMORY_H
+/*****************************************************************************
+ *                                                                           *
+ *    Memory - Utility functions for managing DMA-enabled (packet) memory.   *
+ *                                                                           *
+ * Some parts of this header still originate from the Ixy project, while the *
+ * majority has been rewritten in C++ and was adapted to L4Re.               *
+ *                                                                           *
+ *****************************************************************************/
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <unistd.h>
+#pragma once
 
 #include <atomic>
 
@@ -16,10 +18,17 @@
 
 namespace Ixl {
 
-#define HUGE_PAGE_BITS 21
-#define HUGE_PAGE_SIZE (1 << HUGE_PAGE_BITS) // 2_097_152 = 2MiB
-#define SIZE_PKT_BUF_HEADROOM (40 - sizeof(std::atomic_uint32_t))
+// Depend directly on the constants provided by L4. However, we define the size
+// of IXL's huge pages in a central spot to facilitate adaptations later on.
+const unsigned int HUGE_PAGE_BITS        = L4_SUPERPAGESHIFT;
+const unsigned int HUGE_PAGE_SIZE        = L4_SUPERPAGESIZE;
+const unsigned int SIZE_PKT_BUF_HEADROOM = (40 - sizeof(std::atomic_uint32_t));
 
+/**
+ * Structure that wraps a single packet handed over or received from the NIC.
+ * As many NICs only support DMA to 64-Byte-aligned addresses, the start of the
+ * data buffer has to be aligned to 64 B as well.
+ */
 struct pkt_buf {
     // physical address to pass a buffer to a nic
     L4Re::Dma_space::Dma_addr buf_addr_phy;
@@ -45,6 +54,7 @@ struct pkt_buf {
     uint8_t data[] __attribute__((aligned(64)));
 };
 
+// Compile-time invariants needed for pkt_buf to work correctly with a NIC.
 static_assert(sizeof(struct pkt_buf) == 64, "pkt_buf too large");
 static_assert(offsetof(struct pkt_buf, data) == 64, "data at unexpected position");
 static_assert(offsetof(struct pkt_buf, head_room) + SIZE_PKT_BUF_HEADROOM == offsetof(struct pkt_buf, data), "head room not immediately before data");
@@ -62,7 +72,7 @@ struct mempool {
     struct dma_memory backing_mem;
 
     void* base_addr;
-    
+
     uint32_t buf_size;
     uint32_t num_entries;
 
@@ -91,5 +101,3 @@ struct pkt_buf* pkt_buf_alloc(struct mempool* mempool);
 void pkt_buf_free(struct pkt_buf* buf);
 
 }
-
-#endif //IXY_MEMORY_H

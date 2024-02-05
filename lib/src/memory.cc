@@ -1,7 +1,11 @@
-// #include <linux/limits.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <unistd.h>
+/*****************************************************************************
+ *                                                                           *
+ *    Memory - Utility functions for managing DMA-enabled (packet) memory.   *
+ *                                                                           *
+ * Copyright (C) 2023, 2024 Till Miemietz                                    *
+ *                          <till.miemietz@barkhauseninstitut.org>           *
+ *                                                                           *
+ *****************************************************************************/
 
 #include <cstdint>
 
