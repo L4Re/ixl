@@ -16,6 +16,15 @@
 
 namespace Ixl {
 
+/**
+ * Maximum size of an IXL mempool used as backing memory for both RX and TX
+ * queues of the NICs.
+ *
+ * TODO: Make this a configurable parameter, either on driver initialization,
+ *       menuconfig, or at least static per NIC.
+ */
+const unsigned int MEMPOOL_LIMIT = 1 << 28;
+
 struct __attribute__((__packed__)) mac_address {
     uint8_t addr[6];
 };

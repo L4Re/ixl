@@ -208,18 +208,19 @@ void E1000_device::init_rx(void) {
         // MTU of 1518 this has to be fixed if jumbo frames are to be supported
         // mempool should be >= the number of rx and tx descriptors for a
         // forwarding application
-        int mempool_size = (NUM_RX_QUEUE_ENTRIES + NUM_TX_QUEUE_ENTRIES) << 5;
-        if (mempool_size < MIN_MEMPOOL_ENTRIES)
-            mempool_size = MIN_MEMPOOL_ENTRIES;
+        int mempool_size = MIN_MEMPOOL_ENTRIES << 4;
 
-        queue->mempool = memory_allocate_mempool(*this, mempool_size,
-                                                 PKT_BUF_ENTRY_SIZE);
+        // Create the RX memory pool and reserve the minimum number of packets
+        // for use by the driver.
+        queue->mempool = new Mempool(*this, mempool_size, PKT_BUF_ENTRY_SIZE,
+                                     MEMPOOL_LIMIT);
+        queue->mempool->reserve(MIN_MEMPOOL_ENTRIES);
         if (queue->num_entries & (queue->num_entries - 1)) {
             ixl_error("number of queue entries must be a power of 2");
         }
         for (int j = 0; j < queue->num_entries; j++) {
             volatile struct e1000_rx_desc* rxd = queue->descriptors + j;
-            struct pkt_buf* buf = pkt_buf_alloc(queue->mempool);
+            struct pkt_buf* buf = queue->mempool->pkt_buf_alloc();
             if (!buf) {
                     ixl_error("failed to allocate rx buffer");
             }
@@ -429,19 +430,18 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             // the device-specific flags to an independent representation in
             // the buf (similiar to how DPDK works)
             // need a new mbuf for the descriptor
-            struct pkt_buf* new_buf = pkt_buf_alloc(queue->mempool);
+            struct pkt_buf* new_buf = queue->mempool->pkt_buf_alloc();
             while (! new_buf) {
                 // At this point, we just have to trust in this problem not to
-                // be caused by a real packet buffer leak or bug. Hence, we
-                // hope for the best and periodically check whether new buffers
-                // arrived.
-                // We would probably only be able to get rid of this issue by
-                // implementing resizable mempools that grow and shrink with
-                // the application's demands.
-                ixl_warn("failed to allocate new mbuf for rx, you are either "
-                         "leaking memory or your mempool is too small");
+                // be caused by a real packet buffer leak or bug (as immediately
+                // terminating the driver might not be a good idea w.r.t. upper
+                // layers). Hence, we hope for the best and periodically check
+                // whether new buffers arrived (On rare occasions, there might
+                // be false negatives in the current mempool implementation).
+                ixl_warn("Failed to allocate new mbuf for rx, you are either "
+                         "leaking memory or your mempool is too small.");
                 usleep(1000000);
-                new_buf = pkt_buf_alloc(queue->mempool);
+                new_buf = queue->mempool->pkt_buf_alloc();
             }
 
             // Reset the descriptor (new buffer address and zero out flags)

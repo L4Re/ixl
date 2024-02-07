@@ -8,7 +8,7 @@ endif
 
 # If chosen by the user, add jemalloc to the end of the libraries, catching all
 # memory allocation calls.
-REQUIRES_LIBS = libio-vbus libc_support_misc
+REQUIRES_LIBS = libpthread libio-vbus libc_support_misc libstdc++
 ifeq ($(CONFIG_IXL_JEMALLOC),y)
 REQUIRES_LIBS += jemalloc
 endif

@@ -35,8 +35,7 @@ on how to use the Ixylon driver.
 The following (general) things are needed to make the driver more
 sophisticated:
 
-* Make DMA mempools dynamically resizable (Needed by upper layers to increase
-  buffer space with growing number of clients).
+* Allow DMA mempools to shrink.
 * Propagate packet status flags to packet data structure (allows upper layers
   of the network stack to obtain additional information beyond success / fail).
 * Provide an interface for querying and configuring currently active hardware

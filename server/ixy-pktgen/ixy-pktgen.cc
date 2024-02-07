@@ -59,14 +59,16 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
     return ~((uint16_t) cs);
 }
 
-static struct Ixl::mempool* init_mempool(Ixl_device& dev) {
+static struct Ixl::Mempool* init_mempool(Ixl_device& dev) {
     const int NUM_BUFS = 1024;
-    struct Ixl::mempool* mempool = Ixl::memory_allocate_mempool(dev, NUM_BUFS, 0);
+    struct Ixl::Mempool* mempool = new Ixl::Mempool(dev, NUM_BUFS, 0,
+                                                    1ULL << 28);
+
     // pre-fill all our packet buffers with some templates that can be modified later
     // we have to do it like this because sending is async in the hardware; we cannot re-use a buffer immediately
     struct Ixl::pkt_buf* bufs[NUM_BUFS];
     for (int buf_id = 0; buf_id < NUM_BUFS; buf_id++) {
-        struct Ixl::pkt_buf* buf = Ixl::pkt_buf_alloc(mempool);
+        struct Ixl::pkt_buf* buf = mempool->pkt_buf_alloc();
         buf->size = PKT_SIZE;
         memcpy(buf->data, pkt_data, sizeof(pkt_data));
         *(uint16_t*) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
@@ -91,7 +93,7 @@ int main(int argc, char* argv[]) {
                              "Get vbus capability.", -L4_ENOENT);
 
     Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
-    struct Ixl::mempool* mempool = init_mempool(*dev);
+    struct Ixl::Mempool* mempool = init_mempool(*dev);
 
     uint64_t last_stats_printed = device_stats::monotonic_time();
     uint64_t counter = 0;
@@ -106,7 +108,7 @@ int main(int argc, char* argv[]) {
     while (true) {
         // we cannot immediately recycle packets, we need to allocate new packets every time
         // the old packets might still be used by the NIC: tx is async
-        Ixl::pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
+        mempool->pkt_buf_alloc_batch(bufs, BATCH_SIZE);
         for (uint32_t i = 0; i < BATCH_SIZE; i++) {
             // packets can be modified here, make sure to update the checksum when changing the IP header
             *(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;

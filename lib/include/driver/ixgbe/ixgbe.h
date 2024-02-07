@@ -23,11 +23,13 @@ public:
     static const int NUM_TX_QUEUE_ENTRIES = 512;
 
     // 2048 as pktbuf size is strictly speaking incorrect:
-    // we need a few headers (1 cacheline), so there's only 1984 bytes left 
+    // we need a few headers (1 cacheline), so there's only 1984 bytes left
     // for the device but the 82599 can only handle sizes in increments of 1 kb.
     // This is fine since our max packet size is the default MTU of 1518.
     // However, this has to be fixed if jumbo frames are to be supported.
     static const int PKT_BUF_ENTRY_SIZE = 2048;
+
+    // TODO: Check this limit
     static const int MIN_MEMPOOL_ENTRIES = 4096;
 
     static const int TX_CLEAN_BATCH = 32;
@@ -85,7 +87,7 @@ private:
         volatile union ixgbe_adv_rx_desc* descriptors;
 
         // DMA'able memory for storing incoming packets
-        struct mempool* mempool;
+        Mempool* mempool;
 
         // No. of descriptors in the queue
         uint16_t num_entries;

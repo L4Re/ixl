@@ -37,7 +37,11 @@ public:
     static const int NUM_TX_QUEUE_ENTRIES = 256;
 
     static const int PKT_BUF_ENTRY_SIZE  = 2048;
-    static const int MIN_MEMPOOL_ENTRIES = 512;
+
+    // Reserve at least twice the RX queue depth of packets for mempools. This
+    // is what the driver needs to remain operational as every received packet
+    // is immediately replaced with a fresh one in the RX path.
+    static const int MIN_MEMPOOL_ENTRIES = 2 * NUM_RX_QUEUE_ENTRIES;
 
     static const int TX_CLEAN_BATCH      = 32;
 
@@ -97,7 +101,7 @@ private:
         volatile struct e1000_rx_desc* descriptors;
 
         // DMA'able memory for storing incoming packets
-        struct mempool* mempool;
+        Mempool* mempool;
 
         // No. of descriptors in the queue
         uint16_t num_entries;
