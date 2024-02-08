@@ -1,5 +1,13 @@
-#ifndef IXY_INTERRUPTS_H
-#define IXY_INTERRUPTS_H
+/*****************************************************************************
+ *                                                                           *
+ *  Interrupts - IRQ-specific funtions used by the Ixylon driver framework.  *
+ *                                                                           *
+ * Some parts of this header still originate from the Ixy project, while the *
+ * majority has been rewritten in C++ and was adapted to L4Re.               *
+ *                                                                           *
+ *****************************************************************************/
+
+#pragma once
 
 #include <stdint.h>
 
@@ -77,5 +85,3 @@ void create_and_bind_irq(unsigned int irqnum, L4::Cap<L4::Irq> *irq,
                          L4::Cap<L4::Icu> icu);
 
 } // namespace Ixl
-
-#endif //IXY_INTERRUPTS_H

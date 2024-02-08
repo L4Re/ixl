@@ -1,11 +1,18 @@
-#ifndef IXY_LOG_H
-#define IXY_LOG_H
+/*****************************************************************************
+ *                                                                           *
+ *          Log - A collection of Ixylon-specific logging funcions.          *
+ *                                                                           *
+ * Some parts of this header still originate from the Ixy project, while the *
+ * majority has been rewritten in C++ and was adapted to L4Re.               *
+ *                                                                           *
+ *****************************************************************************/
+
+#pragma once
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #ifndef IXL_NDEBUG
 
@@ -60,5 +67,3 @@
 })
 
 void ixl_hexdump(void* void_ptr, size_t len);
-
-#endif //IXY_LOG_H

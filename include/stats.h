@@ -1,8 +1,15 @@
-#ifndef IXY_STATS_H
-#define IXY_STATS_H
+/*****************************************************************************
+ *                                                                           *
+ *     Stats - Functions for gathering statistics from an Ixylon device.     *
+ *                                                                           *
+ * Some parts of this header still originate from the Ixy project, while the *
+ * majority has been rewritten in C++ and was adapted to L4Re.               *
+ *                                                                           *
+ *****************************************************************************/
+
+#pragma once
 
 #include <stdint.h>
-#include <stddef.h>
 #include <time.h>
 #include "device.h"
 
@@ -13,7 +20,7 @@ struct device_stats {
     device_stats(Ixl_device *dev);
 
     static void print_stats(struct device_stats* stats);
-    
+
     static void print_stats_diff(struct device_stats* stats_new,
                                  struct device_stats* stats_old,
                                  uint64_t nanos_passed);
@@ -28,5 +35,3 @@ struct device_stats {
 };
 
 }
-
-#endif //IXY_STATS_H
