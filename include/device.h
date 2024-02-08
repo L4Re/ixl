@@ -114,11 +114,23 @@ public:
     }
 
     /**
+     * Returns the number of descriptor entries per RX queue. This value is
+     * set once upon device initialization.
+     */
+    virtual uint32_t get_rx_queue_depth(void) = 0;
+
+    /**
      * Returns the number of TX queues allocated by the driver.
      */
     uint16_t get_num_tx_queues(void) {
         return num_tx_queues;
     }
+
+    /**
+     * Returns the number of descriptor entries per TX queue. This value is
+     * set once upon device initialization.
+     */
+    virtual uint32_t get_tx_queue_depth(void) = 0;
 
     /**
      * Extend the memory pool backing RX queue qid by count packets.

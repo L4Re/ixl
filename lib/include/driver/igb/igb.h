@@ -82,6 +82,16 @@ public:
 
     void set_mac_addr(struct mac_address mac);
 
+    // Get the number of descriptors per RX queue
+    uint32_t get_rx_queue_depth(void) {
+        return NUM_RX_QUEUE_ENTRIES;
+    }
+
+    // Get the number of descriptors per TX queue
+    uint32_t get_tx_queue_depth(void) {
+        return NUM_TX_QUEUE_ENTRIES;
+    }
+
     // Extend an RX queue's mempool
     bool extend_rxq_mempool(uint16_t qid, uint32_t count) {
         if (qid >= num_rx_queues)
