@@ -82,8 +82,29 @@ public:
 
     void set_mac_addr(struct mac_address mac);
 
+    // Extend an RX queue's mempool
+    bool extend_rxq_mempool(uint16_t qid, uint32_t count) {
+        if (qid >= num_rx_queues)
+            return false;
+
+        struct igb_rx_queue *queue =
+            ((struct igb_rx_queue *) rx_queues) + qid;
+
+        return queue->mempool->reserve(count);
+    }
+
+    // Shrink an RX queue's mempool
+    void shrink_rxq_mempool(uint16_t qid, uint32_t count) {
+        if (qid >= num_rx_queues)
+            return;
+
+        struct igb_rx_queue *queue =
+            ((struct igb_rx_queue *) rx_queues) + qid;
+
+        queue->mempool->cancel_reservation(count);
+    }
+
     /*
-*
      * Initializes and returns the Igb device.
      * @param pci_dev PCI device handle received from this task's vbus
      * @param rx_queues The number of receiver queues.

@@ -1,5 +1,13 @@
-#ifndef IXY_DEVICE_H
-#define IXY_DEVICE_H
+/*****************************************************************************
+ *                                                                           *
+ *        Device - The core device object of the Ixylon (IXL) driver.        *
+ *                                                                           *
+ * Some parts of this header still originate from the Ixy project, while the *
+ * majority has been rewritten in C++ and was adapted to L4Re.               *
+ *                                                                           *
+ *****************************************************************************/
+
+#pragma once
 
 #include <stdint.h>
 #include <unistd.h>
@@ -113,6 +121,29 @@ public:
     }
 
     /**
+     * Extend the memory pool backing RX queue qid by count packets.
+     *
+     * \param qid   Index of the receive queue affected by this operation.
+     * \param count Number of packets by that the mempool shall be extended.
+     *
+     * \return true on success, false else.
+     */
+    virtual bool extend_rxq_mempool(uint16_t qid, uint32_t count) = 0;
+
+    /**
+     * Shrink the memory pool backing RX queue qid by count packets. Be careful
+     * to only shrink a mempool by the amount that it has been extended before.
+     * Otherwise, the driver may break.
+     *
+     * NOTE: Currently, this only clears reservation in the mempool, no actual
+     *       shrinking is implemented.
+     *
+     * \param qid   Index of the receive queue affected by this operation.
+     * \param count Number of packets by that the mempool shall be shrinked.
+     */
+    virtual void shrink_rxq_mempool(uint16_t qid, uint32_t count) = 0;
+
+    /**
      * Binds the receive interrupt for the specified receive queue to the
      * calling thread. Note that by default, all receive interrupts are bound
      * to the thread that creates the device object, so if receive operations
@@ -186,5 +217,3 @@ protected:
 };
 
 }
-
-#endif // IXY_DEVICE_H
