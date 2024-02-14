@@ -12,4 +12,22 @@ Io.add_vbusses
             pci_hd = wrap(Io.system_bus():match("PCI/CC_0200"));
         end);
     end);
+
+    -- Matches all Intel I350 gigabit Ethernet cards in the system
+    i350devs = Io.Vi.System_bus(function ()
+        -- The I350 may allocate at most 25 MSI vectors
+        Property.num_msis = 25;
+        PCI0 = Io.Vi.PCI_bus(function ()
+            pci_hd = wrap(Io.system_bus():match("PCI/DEV_1521"));
+        end);
+    end);
+
+    -- Matches all Intel X540T 10 GBit Ethernet cards in the system
+    x540devs = Io.Vi.System_bus(function ()
+        -- TODO: How many MSIs does the X540 allocate?
+        Property.num_msis = 25;
+        PCI0 = Io.Vi.PCI_bus(function ()
+            pci_hd = wrap(Io.system_bus():match("PCI/DEV_1528"));
+        end);
+    end);
 };
