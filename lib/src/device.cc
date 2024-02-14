@@ -144,6 +144,8 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
     // For now, we will exclude all unknown devices by default, even though a
     // particular driver might work. With more time and testing, we can add
     // more supported devices.
+    ixl_debug("Device vendor ID = 0x%x, device ID = 0x%x", vendor_id,
+              device_id);
     switch (vendor_id) {
         // Intel
         case 0x8086:
