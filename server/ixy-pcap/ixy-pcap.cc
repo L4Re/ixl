@@ -37,6 +37,9 @@ int main(int argc, char* argv[]) {
     int64_t n_packets = -1;
     if (argc == 3) {
         n_packets = atol(argv[2]);
+    }
+
+    if (n_packets >= 0) {
         printf("Capturing %ld packets...\n", n_packets);
     } else {
         printf("Capturing packets...\n");
@@ -65,5 +68,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    printf("Capturing done...\n");
     return 0;
 }
