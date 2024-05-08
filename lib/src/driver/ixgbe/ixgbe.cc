@@ -465,35 +465,26 @@ void Ixgbe_device::reset_and_init(void) {
     wait_for_link();
 }
 
-/**
- * Initializes and returns the IXGBE device.
- * @param pci_dev PCI device handle received from this task's vbus
- * @param rx_queues The number of receiver queues.
- * @param tx_queues The number of transmitter queues.
- * @param interrupt_timeout The interrupt timeout in milliseconds
- *  - if set to -1 the interrupt timeout is disabled
- *  - if set to 0 the interrupt is disabled entirely)
- * @return The initialized IXGBE device.
- */
+/* Initializes and returns the IXGBE device.                                */
 Ixgbe_device* Ixgbe_device::ixgbe_init(L4vbus::Pci_dev&& pci_dev,
-                                       uint16_t rx_queues,
-                                       uint16_t tx_queues,
-                                       int irq_timeout) {
-    if (rx_queues > MAX_QUEUES) {
-        ixl_error("cannot configure %d rx queues: limit is %d", rx_queues, MAX_QUEUES);
+                                       struct Dev_cfg &cfg) {
+    // TODO: Move this check to constructor?
+    if (cfg.num_rx_queues > MAX_QUEUES) {
+        ixl_error("cannot configure %d rx queues: limit is %d",
+                  cfg.num_rx_queues, MAX_QUEUES);
     }
-    if (tx_queues > MAX_QUEUES) {
-        ixl_error("cannot configure %d tx queues: limit is %d", tx_queues, MAX_QUEUES);
+    if (cfg.num_tx_queues > MAX_QUEUES) {
+        ixl_error("cannot configure %d tx queues: limit is %d",
+                  cfg.num_tx_queues, MAX_QUEUES);
     }
 
     // Allocate memory for the ixgbe device that will be returned
-    Ixgbe_device *dev = new Ixgbe_device(std::move(pci_dev),
-                                         rx_queues, tx_queues, 
-                                         (irq_timeout != 0), 
-                                         0x028, // itr_rate (10ys => 97600 INT/s)
-                                         irq_timeout);
+    // Itr set to 0x028 yields at most 97600 INT/s
+    Ixgbe_device *dev = new Ixgbe_device(std::move(pci_dev), cfg, 0x028);
 
+    // (Re-) initialize the device, making it ready for operations
     dev->reset_and_init();
+
     return dev;
 }
 

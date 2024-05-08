@@ -675,18 +675,13 @@ void E1000_device::set_mac_addr(struct mac_address mac) {
 }
 
 E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev&& pci_dev,
-                                       uint16_t rx_queues,
-                                       uint16_t tx_queues,
-                                       int irq_timeout) {
+                                       struct Dev_cfg &cfg) {
 
-    // Allocate memory for the ixgbe device that will be returned
+    // Create a new E1000 device. itr_rate set to 0x028 yields max 97600 INT/s.
     // TODO: Check whether these IRQ settings are meaningful for E1000.
-    E1000_device *dev = new E1000_device(std::move(pci_dev),
-                                         rx_queues, tx_queues,
-                                         (irq_timeout != 0),
-                                         0x028, // itr_rate (10ys => 97600 INT/s)
-                                         irq_timeout);
+    E1000_device *dev = new E1000_device(std::move(pci_dev), cfg, 0x028);
 
+    // (Re-) initialize the device, making it ready for operations
     dev->reset_and_init();
     return dev;
 }

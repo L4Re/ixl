@@ -32,7 +32,13 @@ int main(int argc, char* argv[]) {
     auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
                              "Get vbus capability.", -L4_ENOENT);
 
-    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
+    // Get a default device configuration
+    struct Ixl::Dev_cfg cfg;
+    // For this test, configure the device in polling mode
+    cfg.irq_timeout_ms = 0;
+
+    // Setup the driver (also resets and initializes the NIC)
+    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
 
     int64_t n_packets = -1;
     if (argc == 3) {

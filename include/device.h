@@ -60,6 +60,28 @@ struct __attribute__((__packed__)) mac_address {
 #define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1))
 
 /**
+ * Wrapper structure that contains the (initial) configuration parameters of
+ * an Ixl device. We use a dedicated config structure to reduce the number
+ * of arguments passed to the ixl_init function. The structure comes with
+ * default parameters that an application may change before using the config
+ * with ixl_init().
+ */
+struct Dev_cfg {
+    /// Number of NIC receive queues to allocate
+    uint16_t num_rx_queues = 1;
+    /// Number of NIC send queues to allocate
+    uint16_t num_tx_queues = 1;
+
+    /**
+     * Timeout when waiting for IRQs from the NIC in ms. If set to zero, the
+     * driver will use polling instead of IRQ-based event notification. If set
+     * to -1, the driver will set no IRQ timeout at all (potentially sleeping
+     * forever).
+     */
+    int irq_timeout_ms = 1000;
+};
+
+/**
  * General abstraction for a device managed by an Ixylon driver.
  */
 class Ixl_device {
@@ -172,18 +194,14 @@ public:
      * device shall be in an operational state and ready to handle send and
      * receive requests.
      *
-     * \param vbus         Virtual device bus that shall be searched for
-     *                     suitable PCI Ethernet devices
-     * \param dev_idx      Index of the device to open (in case multiple
-     *                     devices are present on the vbus)
-     * \param rx_queues    Number of NIC receive queues to allocate
-     * \param tx_queues    Number of NIC send queues to allocate
-     * \param irq_timeout  Timeout when waiting for IRQs from the NIC. If set
-     *                     to zero, driver is configured in polling mode.
+     * \param vbus     Virtual device bus that shall be searched for
+     *                 suitable PCI Ethernet devices
+     * \param dev_idx  Index of the device to open (in case multiple
+     *                 devices are present on the vbus)
+     * \param cfg      Initial device configuration, see Dev_cfg for details.
      */
     static Ixl_device* ixl_init(L4::Cap<L4vbus::Vbus> vbus,
-                                uint32_t dev_idx, uint16_t rx_queues,
-                                uint16_t tx_queues, int irq_timeout);
+                                uint32_t dev_idx, struct Dev_cfg &cfg);
 
 protected:
     /*                             Functions                                */

@@ -129,8 +129,7 @@ void Ixl_device::rebind_recv_irq(uint16_t qid) {
 
 /* Create and initialize the driver for a certain device.                   */
 Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
-                                 uint32_t dev_idx, uint16_t rx_queues,
-                                 uint16_t tx_queues, int irq_timeout) {
+                                 uint32_t dev_idx, struct Dev_cfg &cfg) {
     // Read PCI configuration space to obtain initial device information.
     uint32_t vendor_id;
     uint32_t device_id;
@@ -154,26 +153,17 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                 case E1000_DEV_ID_82540EM:
                     // The device emulated by QEMU when choosing an e1000 NIC
                     ixl_info("Trying e1000...");
-                    return E1000_device::e1000_init(std::move(dev),
-                                                    rx_queues, tx_queues,
-                                                    irq_timeout);
-                    break;
+                    return E1000_device::e1000_init(std::move(dev), cfg);
                 // Hereinafter all igb-driver devices
                 case IGB_DEV_ID_I350:
-                    ixl_warn("The Igb driver is untested and provides only a "
-                             "very limited feature set. You have been warned!");
-                    return Igb_device::igb_init(std::move(dev),
-                                                rx_queues, tx_queues,
-                                                irq_timeout);
-                    break;
+                    ixl_warn("The Igb driver provides only a limited feature "
+                             "set. You have been warned!");
+                    return Igb_device::igb_init(std::move(dev), cfg);
                 // Hereinafter all ixgbe-driven devices
                 case IXGBE_DEV_ID_X540T:
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");
-                    return Ixgbe_device::ixgbe_init(std::move(dev),
-                                                    rx_queues, tx_queues,
-                                                    irq_timeout);
-                    break;
+                    return Ixgbe_device::ixgbe_init(std::move(dev), cfg);
                 default:
                     ixl_error("Unsupported device %x of vendor %x. "
                               "No suitable driver found.", device_id,

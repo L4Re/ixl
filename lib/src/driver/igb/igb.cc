@@ -687,7 +687,7 @@ void Igb_device::set_promisc(bool enabled) {
     if (enabled) {
         ixl_info("enabling promisc mode");
         set_flags32(baddr[0], IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
-    } 
+    }
     else {
         ixl_info("disabling promisc mode");
         clear_flags32(baddr[0], IGB_RCTL, IGB_RCTL_MPE | IGB_RCTL_UPE);
@@ -721,7 +721,7 @@ struct mac_address Igb_device::get_mac_addr(void) {
     if (! mac_init) {
         if (read_eeprom(0x0, 3, (uint16_t *) &mac_addr.addr) != 0)
             ixl_error("Failed to read MAC address from EEPROM.");
-    
+
         mac_init = true;
     }
 
@@ -735,18 +735,13 @@ void Igb_device::set_mac_addr(struct mac_address mac) {
 }
 
 Igb_device* Igb_device::igb_init(L4vbus::Pci_dev&& pci_dev,
-                                 uint16_t rx_queues,
-                                 uint16_t tx_queues,
-                                 int irq_timeout) {
+                                 struct Dev_cfg &cfg) {
 
-    // Allocate memory for the ixgbe device that will be returned               
+    // Create a new Igb device. itr_rate set to 0x028 yields max 97600 INT/s.
     // TODO: Check whether these IRQ settings are meaningful for Igb.
-    Igb_device *dev = new Igb_device(std::move(pci_dev),          
-                                     rx_queues, tx_queues,                  
-                                     (irq_timeout != 0),                    
-                                     0x028, // itr_rate (10ys => 97600 INT/s)
-                                     irq_timeout);                          
-                                                                                
-    dev->reset_and_init();                                                      
-    return dev;  
+    Igb_device *dev = new Igb_device(std::move(pci_dev), cfg, 0x028);
+
+    // (Re-) initialize the device, making it ready for operations
+    dev->reset_and_init();
+    return dev;
 }

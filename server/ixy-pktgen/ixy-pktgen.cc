@@ -92,7 +92,13 @@ int main(int argc, char* argv[]) {
     auto vbus = L4Re::chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
                              "Get vbus capability.", -L4_ENOENT);
 
-    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), 1, 1, 0);
+    // Get a device configuration struct with default parameters
+    struct Ixl::Dev_cfg cfg;
+    // For this test, configure the device to use polling mode
+    cfg.irq_timeout_ms = 0;
+
+    // Create an Ixl device. This also initializes the NIC.
+    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
     struct Ixl::Mempool* mempool = init_mempool(*dev);
 
     uint64_t last_stats_printed = device_stats::monotonic_time();

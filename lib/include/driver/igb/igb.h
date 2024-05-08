@@ -116,18 +116,13 @@ public:
 
     /*
      * Initializes and returns the Igb device.
-     * @param pci_dev PCI device handle received from this task's vbus
-     * @param rx_queues The number of receiver queues.
-     * @param tx_queues The number of transmitter queues.
-     * @param interrupt_timeout The interrupt timeout in milliseconds
-     *      - if set to -1 the interrupt timeout is disabled
-     *      - if set to 0 the interrupt is disabled entirely)
-     * @return The initialized Igb device.
+     *
+     * \param pci_dev PCI device handle received from this task's vbus
+     * \param cfg     An Ixl device configuration. See Dev_cfg for details.
+     *
+     * \return The initialized Igb device.
      */
-    static Igb_device* igb_init(L4vbus::Pci_dev&& pci_dev,
-                                uint16_t rx_queues,
-                                uint16_t tx_queues,
-                                int irq_timeout);
+    static Igb_device* igb_init(L4vbus::Pci_dev&& pci_dev, struct Dev_cfg &cfg);
 
 private:
     // allocated for each rx queue, keeps state for the receive function
@@ -171,20 +166,19 @@ private:
     };
 
     /***                           Constructor                            ***/
-    Igb_device(L4vbus::Pci_dev&& dev, uint16_t rx_qs, uint16_t tx_qs,
-               bool irq_enabled, uint32_t itr_rate, int irq_timeout_ms) {
-        l4_timeout_s l4tos = l4_timeout_from_us(irq_timeout_ms * 1000);
+    Igb_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
+        l4_timeout_s l4tos = l4_timeout_from_us(cfg.irq_timeout_ms * 1000);
 
         // FIXME: Implement multi-queue support for this device type
-        if (rx_qs != 1)
+        if (cfg.num_rx_queues != 1)
             ixl_error("Currently, an Igb device supports exactly one receive queue.");
-        if (tx_qs != 1)
+        if (cfg.num_tx_queues != 1)
             ixl_error("Currently, an Igb device supports exactly one transmit queue.");
 
-        num_rx_queues = rx_qs;
-        num_tx_queues = tx_qs;
+        num_rx_queues = cfg.num_rx_queues;
+        num_tx_queues = cfg.num_tx_queues;
 
-        interrupts.interrupts_enabled = irq_enabled;
+        interrupts.interrupts_enabled = (cfg.irq_timeout_ms != 0);
         interrupts.itr_rate           = itr_rate;
         interrupts.timeout            = l4_timeout(l4tos, l4tos);
 
@@ -198,13 +192,13 @@ private:
         create_dma_space();
 
         // Do the IRQ-related setup if requested by user
-        if (irq_enabled) {
+        if (cfg.irq_timeout_ms != 0) {
             setup_icu_cap();
             setup_interrupts();
         }
 
-        rx_queues = calloc(rx_qs, sizeof(struct igb_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
-        tx_queues = calloc(tx_qs, sizeof(struct igb_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
+        rx_queues = calloc(num_rx_queues, sizeof(struct igb_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
+        tx_queues = calloc(num_tx_queues, sizeof(struct igb_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
     }
 
     /***                           Functions                              ***/
