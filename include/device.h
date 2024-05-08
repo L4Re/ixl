@@ -75,8 +75,8 @@ struct Dev_cfg {
     /**
      * Timeout when waiting for IRQs from the NIC in ms. If set to zero, the
      * driver will use polling instead of IRQ-based event notification. If set
-     * to -1, the driver will set no IRQ timeout at all (potentially sleeping
-     * forever).
+     * a negative value, the driver will set no IRQ timeout at all (potentially
+     * sleeping forever).
      */
     int irq_timeout_ms = 1000;
 };

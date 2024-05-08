@@ -163,7 +163,7 @@ private:
 
     /***                           Constructor                            ***/
     E1000_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate){
-        l4_timeout_s l4tos = l4_timeout_from_us(cfg.irq_timeout_ms * 1000);
+        l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
         // Integrity check: The E1000 series does not have multi-queue support
         if (cfg.num_rx_queues != 1)
@@ -173,6 +173,12 @@ private:
 
         num_rx_queues = cfg.num_rx_queues;
         num_tx_queues = cfg.num_tx_queues;
+
+        // Set up IRQ-related data
+        if (cfg.irq_timeout_ms < 0)
+            l4tos = l4_timeout_from_us(L4_TIMEOUT_US_NEVER);
+        else
+            l4tos = l4_timeout_from_us(cfg.irq_timeout_ms * 1000);
 
         interrupts.interrupts_enabled = (cfg.irq_timeout_ms != 0);
         interrupts.itr_rate           = itr_rate;
