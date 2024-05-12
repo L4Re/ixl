@@ -60,6 +60,17 @@ struct __attribute__((__packed__)) mac_address {
 #define wrap_ring(index, ring_size) (uint16_t) ((index + 1) & (ring_size - 1))
 
 /**
+ * List of device specific option identifiers. Options are configurables that
+ * are set upon device initialization.
+ */
+enum Dev_opts {
+    /// IPv4 TX checksum offloading enabled: Set to 1 if enabled, 0 otherwise.
+    IP4_TX_CSUM_OFFL = 0x1000,
+    /// UDP TX checksum offloading enabled: Set to 1 if enabled, 0 otherwise.
+    UDP_TX_CSUM_OFFL = 0x1001,
+};
+
+/**
  * Wrapper structure that contains the (initial) configuration parameters of
  * an Ixl device. We use a dedicated config structure to reduce the number
  * of arguments passed to the ixl_init function. The structure comes with
@@ -87,6 +98,24 @@ struct Dev_cfg {
 class Ixl_device {
 public:
     /***                           Functions                              ***/
+
+    /**
+     * Get the current option value of a specific device configuration
+     * parameter. Some of these values can be set during device initialization
+     * while others may be fixed capabilities of a NIC. If the option exists,
+     * its current value is returned. If the device does not support an
+     * option, a negative number is returned. See Dev_opts for a detailed
+     * description of options and their possible values.
+     *
+     * \param type_id Option ID to query (defined by Dev_opts).
+     *
+     * \returns The value of the option as integer or a negative RC on error.
+     */
+    int get_opt(uint32_t opt_id) {
+        (void) opt_id;
+
+        return -L4_ENOENT;
+    };
 
     /**
      * Returns the name of the driver.
