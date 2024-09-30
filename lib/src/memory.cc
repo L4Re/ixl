@@ -270,8 +270,8 @@ void Ixl::Mempool::cancel_reservation(uint32_t count) {
 // entry_size can be 0 to use the default
 struct Ixl::Mempool_chunk* Ixl::Mempool::allocate_mempool_chunk(void) {
     struct Mempool_chunk *chunk  =
-            (struct Mempool_chunk*)
-            malloc(sizeof(struct Mempool_chunk) +
+            (struct Mempool_chunk *)
+            calloc(1, sizeof(struct Mempool_chunk) +
                    chunk_entries * sizeof(std::atomic_uint32_t));
 
     chunk->backing_mem = memory_allocate_dma(dev, chunk_entries * elem_size);
