@@ -267,7 +267,6 @@ void Igb_device::init_rx(void) {
     // Disable VLAN filtering as we do not support it anyways
     clear_flags32(baddr[0], IGB_RCTL, IGB_RCTL_VFE);
 
-    // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_rx_queues; i++) {
         ixl_debug("initializing rx queue %d", i);
 
@@ -314,7 +313,6 @@ void Igb_device::init_rx(void) {
 
 void Igb_device::init_tx(void) {
     // FIXME: Enable mq support for this type of NIC
-    // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_tx_queues; i++) {
         struct igb_tx_queue* queue = ((struct igb_tx_queue*) tx_queues) + i;
         ixl_debug("initializing tx queue %d", i);
