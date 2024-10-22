@@ -41,9 +41,20 @@ struct interrupt_queue {
     struct interrupt_moving_avg moving_avg; // The moving average of the hybrid interrupt
 };
 
+enum class interrupt_mode {
+    // RX interrupts are disabled for this device.
+    Disable,
+    // RX interrupts are enabled for this device. They are used in rx_batch()
+    // when waiting for new packets to arrive.
+    Wait,
+    // RX interrupts are enabled for this device. They are used as an
+    // asynchronous notification when new packets arrive.
+    Notify,
+};
+
 struct interrupts {
-    // Whether interrupts for this device are enabled or disabled.
-    bool interrupts_enabled;
+    // Whether and how interrupts are used for this device.
+    interrupt_mode mode;
 
     // Cap to the virtual interrupt controller of the ixylon device
     L4::Cap<L4::Icu> vicu;

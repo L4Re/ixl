@@ -86,8 +86,9 @@ struct Dev_cfg {
     /**
      * Timeout when waiting for IRQs from the NIC in ms. If set to zero, the
      * driver will use polling instead of IRQ-based event notification. If set
-     * a negative value, the driver will set no IRQ timeout at all (potentially
-     * sleeping forever).
+     * to -1 the driver will use polling, but provide IRQs for asynchronous
+     * notifications. If set to any other negative value, the driver will set no
+     * IRQ timeout at all (potentially sleeping forever).
      */
     int irq_timeout_ms = 1000;
 };
@@ -205,6 +206,34 @@ public:
      * \param count Number of packets by that the mempool shall be shrinked.
      */
     virtual void shrink_rxq_mempool(uint16_t qid, uint32_t count) = 0;
+
+    /**
+     * Get IRQ for the given RX queue.
+     *
+     * \param qid  Index of the receive queue.
+     *
+     * \return Valid capability on success.
+     */
+    L4::Cap<L4::Irq> get_recv_irq(uint16_t qid);
+
+    /**
+     * Check, clear and mask the IRQ for the given RX queue.
+     *
+     * \param qid  Index of the receive queue.
+     *
+     * \retval false  No IRQ was pending for the given RX queue.
+     * \retval true   IRQ for the given RX queue was pending, and has been
+     *                cleared and masked. When done with handling the RX queue,
+     *                call `ack_recv_irq(qid)` to re-enable (unmask) the IRQ.
+     */
+    virtual bool check_recv_irq(uint16_t qid) = 0;
+
+    /**
+     * Re-enable (unmask) the IRQ for the given RX queue.
+     *
+     * \param qid  Index of the receive queue.
+     */
+    virtual void ack_recv_irq(uint16_t qid) = 0;
 
     /**
      * Binds the receive interrupt for the specified receive queue to the

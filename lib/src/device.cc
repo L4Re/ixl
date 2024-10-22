@@ -110,6 +110,21 @@ void Ixl_device::setup_icu_cap(void) {
     }
 }
 
+/* Get IRQ for the given RX queue.                                          */
+L4::Cap<L4::Irq> Ixl_device::get_recv_irq(uint16_t qid) {
+    if (qid >= num_rx_queues) {
+        ixl_warn("Invalid qid paramter (out of bounds).");
+        return L4::Cap<L4::Irq>();
+    }
+
+    if (interrupts.mode == interrupt_mode::Disable) {
+        ixl_info("Ignoring request as IRQs are disabled globally.");
+        return L4::Cap<L4::Irq>();
+    }
+
+    return interrupts.queues[qid].irq;
+}
+
 /* Rebind the IRQ of a receive queue to the calling thread.                 */
 void Ixl_device::rebind_recv_irq(uint16_t qid) {
     if (qid >= num_rx_queues) {
@@ -117,7 +132,7 @@ void Ixl_device::rebind_recv_irq(uint16_t qid) {
         return;
     }
 
-    if (! interrupts.interrupts_enabled) {
+    if (interrupts.mode == interrupt_mode::Disable) {
         ixl_info("Ignoring request as IRQs are disabled globally.");
         return;
     }

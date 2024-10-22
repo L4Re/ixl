@@ -34,7 +34,12 @@ void Ixgbe_device::enable_msi_interrupt(uint16_t queue_id) {
     clear_flags32(baddr[0], IXGBE_EIAC, 1 << eicr_bit);
 
     // Step 4: Set the auto mask in the EIAM register according to the preferred mode of operation.
-    // In our case we prefer not auto-masking the interrupts
+    if (interrupts.mode == interrupt_mode::Notify)
+        // In Notify mode we prefer auto-masking the interrupts.
+        set_flags32(baddr[0], IXGBE_EIAM, 1 << eicr_bit);
+    else if (interrupts.mode == interrupt_mode::Wait)
+        // In Wait mode we prefer not auto-masking the interrupts.
+        clear_flags32(baddr[0], IXGBE_EIAM, 1 << eicr_bit);
 
     // Step 5: Set the interrupt throttling in EITR[n] and GPIE according to the preferred mode of operation.
     set_reg32(baddr[0], IXGBE_EITR(eicr_bit), interrupts.itr_rate);
@@ -68,7 +73,12 @@ void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
     set_flags32(baddr[0], IXGBE_EIAC, 1 << msi_vec);
 
     // Step 4: Set the auto mask in the EIAM register according to the preferred mode of operation.
-    // In our case we prefer to not auto-mask the interrupts
+    if (interrupts.mode == interrupt_mode::Notify)
+        // In Notify mode we prefer auto-masking the interrupts.
+        set_flags32(baddr[0], IXGBE_EIAM, 1 << msi_vec);
+    else if (interrupts.mode == interrupt_mode::Wait)
+        // In Wait mode we prefer not auto-masking the interrupts.
+        clear_flags32(baddr[0], IXGBE_EIAM, 1 << msi_vec);
 
     // Step 5: Set the interrupt throttling in EITR[n] and GPIE according to the preferred mode of operation.
     // 0x000 (0us) => ... INT/s
@@ -99,7 +109,7 @@ void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
  * @param queue_id The ID of the queue to enable.
  */
 void Ixgbe_device::enable_interrupt(uint16_t queue_id) {
-    if (!interrupts.interrupts_enabled) {
+    if (interrupts.mode == interrupt_mode::Disable) {
         return;
     }
     switch (interrupts.interrupt_type) {
@@ -120,7 +130,7 @@ void Ixgbe_device::enable_interrupt(uint16_t queue_id) {
  * If available, MSI-X is preferred over MSI.
  */
 void Ixgbe_device::setup_interrupts(void) {
-    if (! interrupts.interrupts_enabled) {
+    if (interrupts.mode == interrupt_mode::Disable) {
         return;
     }
 
@@ -217,7 +227,7 @@ void Ixgbe_device::setup_interrupts(void) {
         interrupts.interrupt_type = IXL_IRQ_LEGACY;
 
         ixl_warn("Device does not support MSIs. Disabling interrupts...");
-        interrupts.interrupts_enabled = false;
+        interrupts.mode = interrupt_mode::Disable;
         return;
     }
 }
@@ -454,7 +464,7 @@ void Ixgbe_device::reset_and_init(void) {
     }
 
     // Enable IRQ for receiving packets
-    if (interrupts.interrupts_enabled) {
+    if (interrupts.mode != interrupt_mode::Disable) {
         uint32_t gpie = IXGBE_GPIE_PBA_SUPPORT | IXGBE_GPIE_EIAME;
 
         if (interrupts.interrupt_type == IXL_IRQ_MSIX)
@@ -550,6 +560,33 @@ void Ixgbe_device::set_promisc(bool enabled) {
     }
 }
 
+/* Check, clear and mask the IRQ for the given RX queue.                    */
+bool Ixgbe_device::check_recv_irq(uint16_t qid) {
+    switch (interrupts.interrupt_type) {
+        case IXL_IRQ_MSIX:
+            // Nothing to do, we use a 1:1 mapping of RX queue to MSI-X vector.
+            return true;
+        case IXL_IRQ_MSI:
+            // TODO: This is kind of broken, only one check per IRQ will work,
+            //       since read clears the bits. So only works when the device
+            //       is used with a single RX queue.
+            return get_reg32(baddr[0], IXGBE_EICR) & (1 << qid);
+        default:
+            return false;
+    }
+}
+
+/* Re-enable (unmask) the IRQ for the given RX queue.                       */
+void Ixgbe_device::ack_recv_irq(uint16_t qid) {
+    switch (interrupts.interrupt_type) {
+        case IXL_IRQ_MSIX:
+        case IXL_IRQ_MSI:
+            // Was auto-cleared via EIAM, on ack set EIMS, to re-enable the IRQ.
+            set_reg32(baddr[0], IXGBE_EIMS, 1 << qid);
+            return;
+    }
+}
+
 // read stat counters and accumulate in stats
 // stats may be NULL to just reset the counters
 void Ixgbe_device::read_stats(struct device_stats* stats) {
@@ -572,14 +609,14 @@ void Ixgbe_device::read_stats(struct device_stats* stats) {
 uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                                 uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
-    bool interrupts_enabled = interrupts.interrupts_enabled;
+    bool interrupt_wait = interrupts.mode == interrupt_mode::Wait;
     struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;
 
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt = &interrupts.queues[queue_id];
     }
 
-    if (interrupts_enabled && interrupt->interrupt_enabled) {
+    if (interrupt_wait && interrupt->interrupt_enabled) {
         if (! queue->rx_pending)
             interrupt->irq->receive(interrupts.timeout);
     }
@@ -643,7 +680,7 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             queue->rx_pending = true;
     }
 
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt->rx_pkts += buf_index;
 
         if ((interrupt->instr_counter++ & 0xFFF) == 0) {

@@ -70,7 +70,7 @@ int E1000_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
 }
 
 void E1000_device::setup_interrupts(void) {
-    if (! interrupts.interrupts_enabled) {
+    if (interrupts.mode == interrupt_mode::Disable) {
         return;
     }
 
@@ -362,7 +362,7 @@ void E1000_device::reset_and_init(void) {
     usleep(1000);
 
     // Enable IRQ for receiving packets
-    if (interrupts.interrupts_enabled)
+    if (interrupts.mode != interrupt_mode::Disable)
         enable_rx_interrupt();
 
     // Enable promiscuous mode by default (facilitates testing)
@@ -375,34 +375,22 @@ void E1000_device::reset_and_init(void) {
 uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                                 uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
-    bool interrupts_enabled = interrupts.interrupts_enabled;
+    bool interrupt_wait = interrupts.mode == interrupt_mode::Wait;
 
     // For non-debug builds insert an additional bounds check for the queue_id
     l4_assert(queue_id == 0);
     struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;
 
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt = &interrupts.queues[queue_id];
     }
 
-    if (interrupts_enabled && interrupt->interrupt_enabled) {
-        uint32_t icr;           // Value of interrupt cause register
-
+    if (interrupt_wait && interrupt->interrupt_enabled) {
         if (! queue->rx_pending)
             interrupt->irq->receive(interrupts.timeout);
 
         // Read ICR register regardless of rx_pending status to check for errors
-        icr = get_reg32(baddr[0], E1000_ICR);
-
-        // Notify user upon unexpected IRQ causes
-        if (icr & ~E1000_ICR_RXT0) {
-            // For now in production mode, we only print out a warning in case
-            // of an RX queue overflow which is one of the more severe errors...
-            if (icr & E1000_ICR_RXO)
-                ixl_warn("ICR indicates RX overflow (icr = 0x%x)!", icr);
-            else
-                ixl_debug("Received unexpected IRQ (icr = 0x%x)!", icr);
-        }
+        E1000_device::check_recv_irq(queue_id);
     }
 
     // rx index we checked in the last run of this function
@@ -478,7 +466,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     }
 
     // Perform IRQ bookkeeping
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt->rx_pkts += buf_index;
 
         if ((interrupt->instr_counter++ & 0xFFF) == 0) {
@@ -672,6 +660,48 @@ void E1000_device::set_mac_addr(struct mac_address mac) {
     (void) mac;
     ixl_error("Unimplemented.");
     return;
+}
+
+/* Check, clear and mask the IRQ for the given RX queue.                    */
+bool E1000_device::check_recv_irq(uint16_t qid) {
+    (void) qid;
+    l4_assert(qid == 0);
+
+    uint32_t icr = get_reg32(baddr[0], E1000_ICR);
+
+    // Notify user upon unexpected IRQ causes
+    if (icr & ~E1000_ICR_RXT0) {
+        // For now in production mode, we only print out a warning in case
+        // of an RX queue overflow which is one of the more severe errors...
+        if (icr & E1000_ICR_RXO)
+            ixl_warn("ICR indicates RX overflow (icr = 0x%x)!", icr);
+        //else
+            //ixl_debug("Received unexpected IRQ (icr = 0x%x)!", icr);
+    }
+
+    if (icr & E1000_ICR_RXT0) {
+        // Mask all interrupts.
+        set_reg32(baddr[0], E1000_IMC, 0xffffffff);
+        return true;
+    }
+    else
+        return false;
+}
+
+/* Re-enable (unmask) the IRQ for the given RX queue.                       */
+void E1000_device::ack_recv_irq(uint16_t qid) {
+    (void) qid;
+    l4_assert(qid == 0);
+
+    // Level-triggered, needs ack.
+    if (interrupts.interrupt_type == IXL_IRQ_LEGACY) {
+        interrupts.queues[qid].irq->unmask();
+    }
+    // else
+        // With MSI the IRQ is edge-triggered.
+
+    // Unmask RX interrupt.
+    enable_rx_interrupt();
 }
 
 E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev&& pci_dev,

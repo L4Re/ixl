@@ -57,7 +57,15 @@ void Igb_device::enable_rx_interrupt(uint16_t qid) {
     // No auto clear, following an interrupt, software might read the EICR
     // register to check for the interrupt causes.
     set_flags32(baddr[0], IGB_EIAC, 1 << msi_vec);
-    // set_flags32(baddr[0], IGB_EIAM, 1 << msi_vec);
+
+    // Set the auto mask in the EIAM register according to the preferred mode of
+    // operation.
+    if (interrupts.mode == interrupt_mode::Notify)
+        // In Notify mode we prefer auto-masking the interrupts.
+        set_flags32(baddr[0], IGB_EIAM, 1 << msi_vec);
+    else if (interrupts.mode == interrupt_mode::Wait)
+        // In Wait mode we prefer not auto-masking the interrupts.
+        clear_flags32(baddr[0], IGB_EIAM, 1 << msi_vec);
 
     // Enable the receive interrupt cause
     set_reg32(baddr[0], IGB_EIMS, 1 << msi_vec);
@@ -105,7 +113,7 @@ int Igb_device::read_eeprom(uint8_t saddr, uint8_t word_cnt, uint16_t *buf) {
 }
 
 void Igb_device::setup_interrupts(void) {
-    if (! interrupts.interrupts_enabled) {
+    if (interrupts.mode == interrupt_mode::Disable) {
         return;
     }
 
@@ -181,7 +189,7 @@ void Igb_device::setup_interrupts(void) {
         interrupts.interrupt_type = IXL_IRQ_LEGACY;
 
         ixl_warn("Device does not support MSIs. Disabling interrupts...");
-        interrupts.interrupts_enabled = false;
+        interrupts.mode = interrupt_mode::Disable;
         return;
     }
 }
@@ -431,7 +439,7 @@ void Igb_device::reset_and_init(void) {
     usleep(1000);
 
     // Enable IRQ for receiving packets
-    if (interrupts.interrupts_enabled) {
+    if (interrupts.mode != interrupt_mode::Disable) {
         // Configure the NIC to use multiple MSI-X mode (one IRQ per queue),
         // also set other flags recommended in section 7.3.3.11
         set_flags32(baddr[0], IGB_GPIE, IGB_GPIE_MMSIX |
@@ -453,17 +461,17 @@ void Igb_device::reset_and_init(void) {
 uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                               uint32_t num_bufs) {
     struct interrupt_queue* interrupt = NULL;
-    bool interrupts_enabled = interrupts.interrupts_enabled;
+    bool interrupt_wait = interrupts.mode == interrupt_mode::Wait;
 
     // For non-debug builds insert an additional bounds check for the queue_id
     l4_assert(queue_id == 0);
     struct igb_rx_queue* queue = ((struct igb_rx_queue*) rx_queues) + queue_id;
 
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt = &interrupts.queues[queue_id];
     }
 
-    if (interrupts_enabled && interrupt->interrupt_enabled) {
+    if (interrupt_wait && interrupt->interrupt_enabled) {
         if (! queue->rx_pending) {
             // We only listen on IRQs caused by this RQ, so nothing to do
             // afterwards as auto clearing is enabled
@@ -545,7 +553,7 @@ uint32_t Igb_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     }
 
     // Perform IRQ bookkeeping
-    if (interrupts_enabled) {
+    if (interrupt_wait) {
         interrupt->rx_pkts += buf_index;
 
         if ((interrupt->instr_counter++ & 0xFFF) == 0) {
@@ -733,6 +741,19 @@ void Igb_device::set_mac_addr(struct mac_address mac) {
     (void) mac;
     ixl_error("Unimplemented.");
     return;
+}
+
+/* Check, clear and mask the IRQ for the given RX queue.                    */
+bool Igb_device::check_recv_irq(uint16_t qid) {
+    (void) qid;
+    // Nothing to do, we use a 1:1 mapping of RX queue to MSI-X vector.
+    return interrupts.interrupt_type == IXL_IRQ_MSIX;
+}
+
+/* Re-enable (unmask) the IRQ for the given RX queue.                       */
+void Igb_device::ack_recv_irq(uint16_t qid) {
+    // Was auto-cleared via EIAM. On ack set EIMS, to re-enable the IRQ.
+    set_reg32(baddr[0], IGB_EIMS, 1 << interrupts.queues[qid].msi_vec);
 }
 
 Igb_device* Igb_device::igb_init(L4vbus::Pci_dev&& pci_dev,
