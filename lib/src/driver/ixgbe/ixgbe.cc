@@ -19,9 +19,11 @@ using namespace Ixl;
  * @param queue_id The ID of the queue to enable.
  */
 void Ixgbe_device::enable_msi_interrupt(uint16_t queue_id) {
+    uint32_t eicr_bit = 0;
+
     // Step 1: The software driver associates between Tx and Rx interrupt causes and the EICR
     // register by setting the IVAR[n] registers.
-    set_ivar(0, queue_id, 0);
+    set_ivar(0, queue_id, eicr_bit);
 
     // Step 2: Program SRRCTL[n].RDMTS (per receive queue) if software uses the receive
     // descriptor minimum threshold interrupt
@@ -29,21 +31,19 @@ void Ixgbe_device::enable_msi_interrupt(uint16_t queue_id) {
 
     // Step 3: All interrupts should be set to 0b (no auto clear in the EIAC register). Following an
     // interrupt, software might read the EICR register to check for the interrupt causes.
-    set_reg32(baddr[0], IXGBE_EIAC, 0x00000000);
+    clear_flags32(baddr[0], IXGBE_EIAC, 1 << eicr_bit);
 
     // Step 4: Set the auto mask in the EIAM register according to the preferred mode of operation.
     // In our case we prefer not auto-masking the interrupts
 
     // Step 5: Set the interrupt throttling in EITR[n] and GPIE according to the preferred mode of operation.
-    set_reg32(baddr[0], IXGBE_EITR(queue_id), interrupts.itr_rate);
+    set_reg32(baddr[0], IXGBE_EITR(eicr_bit), interrupts.itr_rate);
 
     // Step 6: Software clears EICR by writing all ones to clear old interrupt causes
     clear_interrupts();
 
     // Step 7: Software enables the required interrupt causes by setting the EIMS register
-    u32 mask = get_reg32(baddr[0], IXGBE_EIMS);
-    mask |= (1 << queue_id);
-    set_reg32(baddr[0], IXGBE_EIMS, mask);
+    set_reg32(baddr[0], IXGBE_EIMS, 1 << eicr_bit);
     ixl_debug("Using MSI interrupts");
 }
 
@@ -53,12 +53,10 @@ void Ixgbe_device::enable_msi_interrupt(uint16_t queue_id) {
  * @param queue_id The ID of the queue to enable.
  */
 void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
+    uint32_t msi_vec = queue_id;
     // Step 1: The software driver associates between interrupt causes and MSI-X vectors and the
     // throttling timers EITR[n] by programming the IVAR[n] and IVAR_MISC registers.
-    uint32_t gpie = get_reg32(baddr[0], IXGBE_GPIE);
-    gpie |= IXGBE_GPIE_MSIX_MODE | IXGBE_GPIE_PBA_SUPPORT | IXGBE_GPIE_EIAME;
-    set_reg32(baddr[0], IXGBE_GPIE, gpie);
-    set_ivar(0, queue_id, queue_id);
+    set_ivar(0, queue_id, msi_vec);
 
     // Step 2: Program SRRCTL[n].RDMTS (per receive queue) if software uses the receive
     // descriptor minimum threshold interrupt
@@ -67,7 +65,7 @@ void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
     // Step 3: The EIAC[n] registers should be set to auto clear for transmit and receive interrupt
     // causes (for best performance). The EIAC bits that control the other and TCP timer
     // interrupt causes should be set to 0b (no auto clear).
-    set_reg32(baddr[0], IXGBE_EIAC, IXGBE_EIMS_RTX_QUEUE);
+    set_flags32(baddr[0], IXGBE_EIAC, 1 << msi_vec);
 
     // Step 4: Set the auto mask in the EIAM register according to the preferred mode of operation.
     // In our case we prefer to not auto-mask the interrupts
@@ -89,12 +87,10 @@ void Ixgbe_device::enable_msix_interrupt(uint16_t queue_id) {
     // 0xE10 (900us) => 1080 INT/s
     // 0xFA7 (1000us) => 980 INT/s
     // 0xFFF (1024us) => 950 INT/s
-    set_reg32(baddr[0], IXGBE_EITR(queue_id), interrupts.itr_rate);
+    set_reg32(baddr[0], IXGBE_EITR(msi_vec), interrupts.itr_rate);
 
     // Step 6: Software enables the required interrupt causes by setting the EIMS register
-    u32 mask = get_reg32(baddr[0], IXGBE_EIMS);
-    mask |= (1 << queue_id);
-    set_reg32(baddr[0], IXGBE_EIMS, mask);
+    set_reg32(baddr[0], IXGBE_EIMS, 1 << msi_vec);
     ixl_debug("Using MSIX interrupts");
 }
 
@@ -182,6 +178,10 @@ void Ixgbe_device::setup_interrupts(void) {
         interrupts.interrupt_type = IXL_IRQ_MSI;
         setup_msi(pci_dev);
 
+         // BROKEN: In Legacy and MSI Interrupt Mode all interrupts causes (EICR
+         // bits) are map to a single interrupt signal, i.e. legacy IRQ or MSI.
+         // So allocating a different MSI vector for each RX queue makes no
+         // sense.
         for (unsigned int rq = 0; rq < num_rx_queues; rq++) {
             // MSI vector representation as suitable for the L4 API
             unsigned int      msi_vec_l4 = rq | L4::Icu::F_msi;
@@ -451,6 +451,17 @@ void Ixgbe_device::reset_and_init(void) {
     }
     for (uint16_t i = 0; i < num_tx_queues; i++) {
         start_tx_queue(i);
+    }
+
+    // Enable IRQ for receiving packets
+    if (interrupts.interrupts_enabled) {
+        uint32_t gpie = IXGBE_GPIE_PBA_SUPPORT | IXGBE_GPIE_EIAME;
+
+        if (interrupts.interrupt_type == IXL_IRQ_MSIX)
+            // Configure the NIC to use multiple MSI-X mode (one IRQ per queue),
+            gpie |= IXGBE_GPIE_MSIX_MODE;
+
+        set_reg32(baddr[0], IXGBE_GPIE, gpie);
     }
 
     // enable interrupts

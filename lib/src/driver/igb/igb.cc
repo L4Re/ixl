@@ -54,18 +54,21 @@ void Igb_device::enable_rx_interrupt(uint16_t qid) {
     set_reg32(baddr[0], IGB_EITR + 4 * msi_vec,
               (interrupts.itr_rate & 0x00001fff) << 2);
 
-    // Unmask and enable the receive timer interrupt cause
+    // No auto clear, following an interrupt, software might read the EICR
+    // register to check for the interrupt causes.
     set_flags32(baddr[0], IGB_EIAC, 1 << msi_vec);
     // set_flags32(baddr[0], IGB_EIAM, 1 << msi_vec);
-    set_flags32(baddr[0], IGB_EIMS, 1 << msi_vec);
+
+    // Enable the receive interrupt cause
+    set_reg32(baddr[0], IGB_EIMS, 1 << msi_vec);
 }
 
 /* Disables a receive interrupt of the NIC.                                 */
 void Igb_device::disable_rx_interrupt(uint16_t qid) {
     uint32_t msi_vec = interrupts.queues[qid].msi_vec;
 
-    // Unmask and enable the receive timer interrupt cause
-    set_flags32(baddr[0], IGB_EIMC, 1 << msi_vec);
+    // Disable the receive interrupt cause.
+    set_reg32(baddr[0], IGB_EIMC, 1 << msi_vec);
 }
 
 /* Read data from the NIC's EEPROM                                          */
