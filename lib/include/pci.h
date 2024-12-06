@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <l4/drivers/asm_access.h>
 #include <l4/vbus/vbus_pci>
 
 /****************************************************************************
@@ -144,12 +145,12 @@ L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
 
 static inline void set_reg32(uint8_t* addr, int reg, uint32_t value) {
     __asm__ volatile ("" : : : "memory");
-    *((volatile uint32_t*) (addr + reg)) = value;
+    Asm_access::write(value, reinterpret_cast<uint32_t *>(addr + reg));
 }
 
 static inline uint32_t get_reg32(const uint8_t* addr, int reg) {
     __asm__ volatile ("" : : : "memory");
-    return *((volatile uint32_t*) (addr + reg));
+    return Asm_access::read(reinterpret_cast<const uint32_t *>(addr + reg));
 }
 
 static inline void set_flags32(uint8_t* addr, int reg, uint32_t flags) {
@@ -161,22 +162,18 @@ static inline void clear_flags32(uint8_t* addr, int reg, uint32_t flags) {
 }
 
 static inline void wait_clear_reg32(const uint8_t* addr, int reg, uint32_t mask) {
-    __asm__ volatile ("" : : : "memory");
     uint32_t cur = 0;
-    while (cur = *((volatile uint32_t*) (addr + reg)), (cur & mask) != 0) {
+    while (cur = get_reg32(addr, reg), (cur & mask) != 0) {
         ixl_debug("waiting for flags 0x%08X in register 0x%05X to clear, current value 0x%08X", mask, reg, cur);
         usleep(10000);
-        __asm__ volatile ("" : : : "memory");
     }
 }
 
 static inline void wait_set_reg32(const uint8_t* addr, int reg, uint32_t mask) {
-    __asm__ volatile ("" : : : "memory");
     uint32_t cur = 0;
-    while (cur = *((volatile uint32_t*) (addr + reg)), (cur & mask) != mask) {
+    while (cur = get_reg32(addr, reg), (cur & mask) != mask) {
         ixl_debug("waiting for flags 0x%08X in register 0x%05X, current value 0x%08X", mask, reg, cur);
         usleep(10000);
-        __asm__ volatile ("" : : : "memory");
     }
 }
 

@@ -77,7 +77,7 @@ void E1000_device::setup_interrupts(void) {
     interrupts.queues = (struct interrupt_queue*) malloc(num_rx_queues * sizeof(struct interrupt_queue));
 
     // Determine type of interrupt available at the device (e1000 does not
-    // supprot MSI-X). Note also that there is only a single receive queue
+    // support MSI-X). Note also that there is only a single receive queue
     // (an in fact also just a single IRQ) on an e1000 card.
     if (pcidev_supports_msi(pci_dev)) {
         // If MSI is available, we will simply go for MSI 0.

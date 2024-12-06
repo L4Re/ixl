@@ -23,11 +23,7 @@ See the table below for a list of device types supported by Ixylon:
 
 ### Running the Driver
 
-If you are driving a NIC that makes use of MSIs (so pretty much every device
-beside those found in emulated environments), make sure to start the `io`
-service with the `--transparent-msi` flag.
-
-See also the testing applications in the `server` directory for some examples
+See the testing applications in the `server` directory for some examples
 on how to use the Ixylon driver.
 
 ### TODOs

@@ -155,6 +155,7 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                     ixl_info("Trying e1000...");
                     return E1000_device::e1000_init(std::move(dev), cfg);
                 // Hereinafter all igb-driver devices
+                case IGB_DEV_ID_82576:
                 case IGB_DEV_ID_I350:
                     ixl_warn("The Igb driver provides only a limited feature "
                              "set. You have been warned!");
