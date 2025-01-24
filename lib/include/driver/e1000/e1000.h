@@ -76,6 +76,10 @@ public:
 
     void set_mac_addr(struct mac_address mac);
 
+    bool check_recv_irq(uint16_t qid) override;
+
+    void ack_recv_irq(uint16_t qid) override;
+
     // Get the number of descriptors per RX queue
     uint32_t get_rx_queue_depth(void) {
         return NUM_RX_QUEUE_ENTRIES;
@@ -180,9 +184,15 @@ private:
         else
             l4tos = l4_timeout_from_us(cfg.irq_timeout_ms * 1000);
 
-        interrupts.interrupts_enabled = (cfg.irq_timeout_ms != 0);
-        interrupts.itr_rate           = itr_rate;
-        interrupts.timeout            = l4_timeout(l4tos, l4tos);
+        if (cfg.irq_timeout_ms == 0)
+            interrupts.mode = interrupt_mode::Disable;
+        else if (cfg.irq_timeout_ms == -1)
+            interrupts.mode = interrupt_mode::Notify;
+        else
+            interrupts.mode = interrupt_mode::Wait;
+
+        interrupts.itr_rate = itr_rate;
+        interrupts.timeout  = l4_timeout(l4tos, l4tos);
 
         pci_dev  = dev;
 
