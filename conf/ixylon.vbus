@@ -1,3 +1,4 @@
+-- vim:ft=lua:
 -- io configuration file that adds all PCI ethernet devices to a single vbus.
 --
 -- This file is mostly intended for testing purposes of the ixylon driver.
