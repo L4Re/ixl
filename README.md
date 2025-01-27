@@ -26,6 +26,14 @@ See the table below for a list of device types supported by Ixylon:
 See the testing applications in the `server` directory for some examples
 on how to use the Ixylon driver.
 
+### QEMU
+
+For QEMU, use the following
+
+    -net nic,model=e1000
+
+to get network device compatible with the 'e1000' driver.
+
 ### TODOs
 
 The following (general) things are needed to make the driver more
