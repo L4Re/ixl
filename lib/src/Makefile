@@ -20,13 +20,13 @@ CXXFLAGS     += -D__STDC_LIMIT_MACROS
 TARGET = libixylon.a libixylon.so
 SRC_CC = log.cc \
          pci.cc \
-		 memory.cc \
-		 stats.cc \
-		 interrupts.cc \
-		 device.cc \
-		 driver/e1000/e1000.cc \
-		 driver/igb/igb.cc \
-		 driver/ixgbe/ixgbe.cc
+         memory.cc \
+         stats.cc \
+         interrupts.cc \
+         device.cc \
+         driver/e1000/e1000.cc \
+         driver/igb/igb.cc \
+         driver/ixgbe/ixgbe.cc
 
 # Include package-private header files
 PRIVATE_INCDIR = $(PKGDIR)/lib/include
