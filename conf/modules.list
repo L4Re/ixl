@@ -2,8 +2,8 @@ entry ixylon
 roottask moe rom/ixylon.cfg
 module l4re
 module ned
-module ixylon.cfg
-module ixylon.vbus
+module ned/ixylon/ixylon.cfg
+module io/ixylon.vbus
 module ned-prompt
 module io
 module ixy-pcap
