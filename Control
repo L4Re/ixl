@@ -1,4 +1,4 @@
-provides: libixylon
-requires: libio-vbus libc drivers-frst
+provides: ixylon
+requires: libio-vbus libc drivers-frst libc_support_misc libstdc++ stdlibs
 optional: libjemalloc
 maintainer: till.miemietz@barkhauseninstitut.org
