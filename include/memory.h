@@ -23,7 +23,7 @@ namespace Ixl {
 // of IXL's huge pages in a central spot to facilitate adaptations later on.
 const unsigned int HUGE_PAGE_BITS        = L4_SUPERPAGESHIFT;
 const unsigned int HUGE_PAGE_SIZE        = L4_SUPERPAGESIZE;
-const unsigned int SIZE_PKT_BUF_HEADROOM = (40 - sizeof(std::atomic_uint32_t));
+const unsigned int SIZE_PKT_BUF_HEADROOM = (48 - sizeof(void *) - sizeof(std::atomic_uint32_t));
 
 // Default packet buffer size in bytes
 const unsigned int DFLT_PKTBUF_SIZE      = 2048;
