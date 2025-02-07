@@ -487,6 +487,13 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         }
     }
 
+    // If the driver runs in irq_wait mode, it should take care full
+    // responsibility of IRQ handling (i.e., IRQ masking and unmasking are not
+    // done manually by the application). Thus, we have to unmask the receive
+    // IRQ here to guarantee a swift notification about newly incoming packets.
+    if (interrupt_wait && interrupt->interrupt_enabled)
+        E1000_device::ack_recv_irq(queue_id);
+
     // number of packets stored in bufs; buf_index points to the next index
     return buf_index;
 }

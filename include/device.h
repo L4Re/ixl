@@ -221,8 +221,8 @@ public:
      *
      * \param qid  Index of the receive queue.
      *
-     * \retval false  No IRQ was pending for the given RX queue.
-     * \retval true   IRQ for the given RX queue was pending, and has been
+     * \return false  No IRQ was pending for the given RX queue.
+     * \return true   IRQ for the given RX queue was pending, and has been
      *                cleared and masked. When done with handling the RX queue,
      *                call `ack_recv_irq(qid)` to re-enable (unmask) the IRQ.
      */
