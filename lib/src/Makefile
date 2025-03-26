@@ -12,7 +12,7 @@ REQUIRES_LIBS-$(CONFIG_IXL_JEMALLOC) += jemalloc
 # stdint.h, see also https://stackoverflow.com/questions/25561677/intmax-max-was-not-declared-in-this-scope?noredirect=1&lq=1
 CXXFLAGS     += -D__STDC_LIMIT_MACROS
 
-TARGET = libixylon.a libixylon.so
+TARGET = libixl.a libixl.so
 SRC_CC = log.cc \
          pci.cc \
          memory.cc \

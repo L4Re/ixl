@@ -15,7 +15,7 @@
 #include <l4/re/util/shared_cap>
 #include <l4/re/dma_space>
 
-#include <l4/ixylon/device.h>
+#include <l4/ixl/device.h>
 
 namespace Ixl {
 

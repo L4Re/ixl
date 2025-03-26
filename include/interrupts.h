@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *  Interrupts - IRQ-specific funtions used by the Ixylon driver framework.  *
+ * Interrupts - IRQ-specific funtions used by the Ixl driver framework.      *
  *                                                                           *
  * Some parts of this header still originate from the Ixy project, while the *
  * majority has been rewritten in C++ and was adapted to L4Re.               *
@@ -56,7 +56,7 @@ struct interrupts {
     // Whether and how interrupts are used for this device.
     interrupt_mode mode;
 
-    // Cap to the virtual interrupt controller of the ixylon device
+    // Cap to the virtual interrupt controller of the Ixl device
     L4::Cap<L4::Icu> vicu;
 
     uint32_t itr_rate;               // The Interrupt Throttling Rate

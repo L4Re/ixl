@@ -1,4 +1,4 @@
-#include <l4/ixylon/stats.h>
+#include <l4/ixl/stats.h>
 
 #include <stdio.h>
 
@@ -17,7 +17,7 @@ device_stats::device_stats(Ixl_device *dev) : device(dev) {
 void device_stats::print_stats(struct device_stats* stats) {
     printf("RX: %zu bytes %zu packets\n", stats->rx_bytes, stats->rx_pkts);
     printf("TX: %zu bytes %zu packets\n", stats->tx_bytes, stats->tx_pkts);
-}   
+}
 
 static double diff_mpps(uint64_t pkts_new, uint64_t pkts_old, uint64_t nanos) {
     return (double) (pkts_new - pkts_old) / 1000000.0 / ((double) nanos / 1000000000.0);

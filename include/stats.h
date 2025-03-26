@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *     Stats - Functions for gathering statistics from an Ixylon device.     *
+ *       Stats - Functions for gathering statistics from an Ixl device.      *
  *                                                                           *
  * Some parts of this header still originate from the Ixy project, while the *
  * majority has been rewritten in C++ and was adapted to L4Re.               *

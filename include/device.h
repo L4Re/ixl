@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *        Device - The core device object of the Ixylon (IXL) driver.        *
+ *             Device - The core device object of the Ixl driver.            *
  *                                                                           *
  * Some parts of this header still originate from the Ixy project, while the *
  * majority has been rewritten in C++ and was adapted to L4Re.               *
@@ -94,7 +94,7 @@ struct Dev_cfg {
 };
 
 /**
- * General abstraction for a device managed by an Ixylon driver.
+ * General abstraction for a device managed by an Ixl driver.
  */
 class Ixl_device {
 public:

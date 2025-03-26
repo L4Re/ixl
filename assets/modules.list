@@ -1,9 +1,9 @@
-entry ixylon
-roottask moe rom/ixylon.cfg
+entry ixl
+roottask moe rom/ixl.cfg
 module l4re
 module ned
-module ned/ixylon/ixylon.cfg
-module io/ixylon.vbus
+module ned/ixl/ixl.cfg
+module io/ixl.vbus
 module ned-prompt
 module io
 module ixy-pcap

@@ -1,9 +1,10 @@
 /*****************************************************************************
  *
- * Implementation of the Ixylon logging facility. The hexdump function is
+ * Implementation of the Ixl logging facility. The hexdump function is
  * a slightly adapted version of the original version of the ixy driver.
  *
- * Copyright (c): 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ * Copyright (c): 2023 - 2025 Till Miemietz
+ *                            <till.miemietz@barkhauseninstitut.org>
  */
 
 
@@ -20,7 +21,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include <l4/ixylon/log.h>
+#include <l4/ixl/log.h>
 
 /****************************************************************************
  *                                                                          *

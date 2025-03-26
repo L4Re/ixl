@@ -2,7 +2,8 @@
  *
  * Implementation of PCI-related functions on L4Re.
  *
- * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ * Copyright (C) 2023 - 2025 Till Miemietz
+ *                           <till.miemietz@barkhauseninstitut.org>
  */
 
 
@@ -23,7 +24,7 @@
 #include <l4/vbus/vbus_pci>
 #include <l4/vbus/vbus_interfaces.h>
 
-#include <l4/ixylon/log.h>
+#include <l4/ixl/log.h>
 
 #include "pci.h"
 

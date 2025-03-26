@@ -1,8 +1,8 @@
 /*****************************************************************************
  *                                                                           *
- *    ixy-pcap - Dump raw ethernet frames received on a NIC to stderr        *
+ *    ixl-pcap - Dump raw ethernet frames received on a NIC to stderr        *
  *                                                                           *
- * This version of ixy-pcap is an adapted form of the original ixy-pcap of   *
+ * This version of ixl-pcap is an adapted form of the original ixy-pcap of   *
  * the ixy driver package.                                                   *
  *                                                                           *
  *****************************************************************************/
@@ -14,9 +14,9 @@
 #include <l4/re/error_helper>
 #include <l4/re/env>
 
-#include <l4/ixylon/device.h>
-#include <l4/ixylon/memory.h>
-#include <l4/ixylon/log.h>
+#include <l4/ixl/device.h>
+#include <l4/ixl/memory.h>
+#include <l4/ixl/log.h>
 
 using Ixl::Ixl_device;
 

@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *          Log - A collection of Ixylon-specific logging funcions.          *
+ *            Log - A collection of Ixl-specific logging funcions.           *
  *                                                                           *
  * Some parts of this header still originate from the Ixy project, while the *
  * majority has been rewritten in C++ and was adapted to L4Re.               *

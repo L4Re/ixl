@@ -1,6 +1,6 @@
 PKGDIR		= ..
 L4DIR		?= $(PKGDIR)/../..
 
-TARGET      = ixy-pcap ixy-pktgen
+TARGET      = ixl-pcap ixl-pktgen
 
 include $(L4DIR)/mk/subdir.mk

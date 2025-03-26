@@ -1,13 +1,13 @@
-menu "Ixylon"
+menu "Ixl"
 
 config IXL_NDEBUG
-    bool "Build IXL in Release Mode"
+    bool "Build Ixl in Release Mode"
     help
-        Builds a production version of the Ixylon driver library, missing
+        Builds a production version of the Ixl driver library, missing
         debugging output.
 
 config IXL_JEMALLOC
-    bool "Use jemalloc as memory allocator for Ixylon"
+    bool "Use jemalloc as memory allocator for Ixl"
     default n
     help
         Instruct the build system to link the driver library against jemalloc

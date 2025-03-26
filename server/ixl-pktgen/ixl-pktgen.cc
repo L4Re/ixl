@@ -1,8 +1,8 @@
 /*****************************************************************************
  *                                                                           *
- *       ixy-pktgen - Send statically configured raw Ethernet frames         *
+ *       ixl-pktgen - Send statically configured raw Ethernet frames         *
  *                                                                           *
- * This version of ixy-pktgen is an adapted form of the original ixy-pktgen  *
+ * This version of ixl-pktgen is an adapted form of the original ixy-pktgen  *
  * from the ixy driver package.                                              *
  *                                                                           *
  *****************************************************************************/
@@ -13,10 +13,10 @@
 #include <l4/re/error_helper>
 #include <l4/re/env>
 
-#include <l4/ixylon/stats.h>
-#include <l4/ixylon/log.h>
-#include <l4/ixylon/memory.h>
-#include <l4/ixylon/device.h>
+#include <l4/ixl/stats.h>
+#include <l4/ixl/log.h>
+#include <l4/ixl/memory.h>
+#include <l4/ixl/device.h>
 
 using Ixl::Ixl_device;
 using Ixl::device_stats;

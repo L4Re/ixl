@@ -5,7 +5,8 @@
  * The ppms and check_interrupt functions are largely taken from the original
  * ixy driver.
  *
- * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ * Copyright (C) 2023 - 2025 Till Miemietz
+ *                           <till.miemietz@barkhauseninstitut.org>
  */
 
 /****************************************************************************
@@ -22,9 +23,9 @@
 #include <l4/re/env>
 #include <l4/re/error_helper>
 
-#include <l4/ixylon/interrupts.h>
-#include <l4/ixylon/log.h>
-#include <l4/ixylon/stats.h>
+#include <l4/ixl/interrupts.h>
+#include <l4/ixl/log.h>
+#include <l4/ixl/stats.h>
 
 /****************************************************************************
  *                                                                          *

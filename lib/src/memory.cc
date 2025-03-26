@@ -2,8 +2,8 @@
  *                                                                           *
  *    Memory - Utility functions for managing DMA-enabled (packet) memory.   *
  *                                                                           *
- * Copyright (C) 2023, 2024 Till Miemietz                                    *
- *                          <till.miemietz@barkhauseninstitut.org>           *
+ * Copyright (C) 2023 - 2025 Till Miemietz                                   *
+ *                           <till.miemietz@barkhauseninstitut.org>          *
  *                                                                           *
  *****************************************************************************/
 
@@ -15,9 +15,9 @@
 #include <l4/re/env>
 #include <l4/re/mem_alloc>
 
-#include <l4/ixylon/memory.h>
-#include <l4/ixylon/device.h>
-#include <l4/ixylon/log.h>
+#include <l4/ixl/memory.h>
+#include <l4/ixl/device.h>
+#include <l4/ixl/log.h>
 
 using namespace Ixl;
 

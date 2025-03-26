@@ -2,7 +2,8 @@
  *
  * Implementation of the common functions of an Ixl_device.
  *
- * Copyright (C) 2023 Till Miemietz <till.miemietz@barkhauseninstitut.org>
+ * Copyright (C) 2023 - 2025 Till Miemietz
+ *                           <till.miemietz@barkhauseninstitut.org>
  */
 
 
@@ -19,7 +20,7 @@
 
 #include <l4/vbus/vbus>
 
-#include <l4/ixylon/device.h>
+#include <l4/ixl/device.h>
 
 #include "driver/e1000/e1000.h"
 #include "driver/igb/igb.h"

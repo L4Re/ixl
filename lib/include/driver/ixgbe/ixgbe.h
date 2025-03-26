@@ -2,9 +2,9 @@
 #define IXY_IXGBE_H
 
 #include <stdbool.h>
-#include <l4/ixylon/stats.h>
+#include <l4/ixl/stats.h>
 
-#include <l4/ixylon/memory.h>
+#include <l4/ixl/memory.h>
 
 #include "ixgbe_type.h"
 #include "../../pci.h"

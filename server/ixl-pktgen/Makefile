@@ -1,10 +1,10 @@
 PKGDIR ?= ../..
 L4DIR  ?= $(PKGDIR)/../..
 
-REQUIRES_LIBS = ixylon
+REQUIRES_LIBS = ixl
 
-TARGET = ixy-pcap
+TARGET = ixl-pktgen
 
-SRC_CC = ixy-pcap.cc
+SRC_CC = ixl-pktgen.cc
 
 include $(L4DIR)/mk/prog.mk
