@@ -30,8 +30,8 @@
  ****************************************************************************/
 
 
-void ixl_hexdump(void* void_ptr, size_t len) {
-    uint8_t* ptr = (uint8_t*) void_ptr;
+void ixl_hexdump(const void *void_ptr, size_t len) {
+    const uint8_t *ptr = (const uint8_t *) void_ptr;
     char ascii[17];
     for (uint32_t i = 0; i < len; i += 16) {
         fprintf(stderr, "%06x: ", i);

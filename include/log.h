@@ -66,4 +66,4 @@
     result;\
 })
 
-void ixl_hexdump(void* void_ptr, size_t len);
+void ixl_hexdump(const void *void_ptr, size_t len);
