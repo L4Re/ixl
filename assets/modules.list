@@ -6,5 +6,5 @@ module ned/ixl/ixl.cfg
 module io/ixl.vbus
 module ned-prompt
 module io
-module ixy-pcap
-module ixy-pktgen
+module ixl-pcap
+module ixl-pktgen
