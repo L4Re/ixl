@@ -2,6 +2,7 @@ menu "Ixl"
 
 config IXL_NDEBUG
     bool "Build Ixl in Release Mode"
+    default y
     help
         Builds a production version of the Ixl driver library, missing
         debugging output.
