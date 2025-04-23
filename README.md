@@ -21,6 +21,29 @@ See the table below for a list of device types supported by Ixl:
 | igb    | Intel I350, Intel 82576 | Currently lacks multi-queue support.  |
 | ixgbe  | Intel X520/X540         | -                                     |
 
+## Building
+
+The Ixl driver library can be configured using a set of compile time config
+options. The respective options are set using L4Re's Kconfig-based configuration
+process. To change compile time settings, use the `make config` command of
+the L4Re toolchain and navigate to the Ixl submenu. As of now, Ixl provides
+the following options:
+
+* Release Mode (*IXL_NDEBUG*): Enabling this option will configure Ixl to print
+                               only non-debug messages, raising the logging
+                               above debug level. This option should be chosen
+                               for production builds including setups used
+                               for benchmarks, as debugging output severely
+                               limits the performance of the driver.
+* Jemalloc (*IXL_JEMALLOC*): Instructs the build toolchain to link Ixl against
+                             `jemalloc` instead of using the system's standard
+                             `malloc` implementation (likely the one of
+                             `uclibc`). It is advised to choose this option for
+                             performance-critical setups, particularly on large
+                             machines. However, the overall performance impact
+                             of using `jemalloc` should be low, as Ixl avoids
+                             heap allocations on the data path.
+
 ## Using the Driver
 
 The driver library uses three main abstractions. An `Ixl_device` represents
