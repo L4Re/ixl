@@ -83,8 +83,8 @@ static struct Ixl::Mempool* init_mempool(Ixl_device& dev) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s <vbus dev idx>\n", argv[0]);
+    if (argc < 2 || argc > 3) {
+        printf("Usage: %s <vbus dev idx> [n packets]\n", argv[0]);
         return 1;
     }
 
@@ -110,8 +110,20 @@ int main(int argc, char* argv[]) {
     // array of bufs sent out in a batch
     struct Ixl::pkt_buf* bufs[BATCH_SIZE];
 
+    // Default is infinite sending
+    int64_t n_packets = -1;
+    if (argc == 3) {
+        n_packets = atol(argv[2]);
+    }
+
+    if (n_packets >= 0) {
+        printf("Sending %ld packets...\n", n_packets);
+    } else {
+        printf("Sending packets...\n");
+    }
+
     // tx loop
-    while (true) {
+    while (n_packets != 0) {
         // we cannot immediately recycle packets, we need to allocate new packets every time
         // the old packets might still be used by the NIC: tx is async
         mempool->pkt_buf_alloc_batch(bufs, BATCH_SIZE);
@@ -133,8 +145,21 @@ int main(int argc, char* argv[]) {
                 last_stats_printed = time;
             }
         }
-        // track stats
+
+        // n_packets == -1 indicates unbounded sending
+        if (n_packets > 0) {
+            n_packets -= BATCH_SIZE;
+
+            // Prevent underflow due to original n_packets is not evenly
+            // divisible by BATCH_SIZE
+            if (n_packets < 0)
+                n_packets = 0;
+        }
+
         sleep(3);
     }
+
+    printf("Sending done...\n");
+    return 0;
 }
 
