@@ -369,8 +369,8 @@ L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
         uint32_t pci_id_reg = 0;
 
         // Make sure that the device found matches the desired dev class
-        check_err(child.cfg_read(8, &pci_id_reg, 32), 
-                  "Failed to read PCI class ID");
+        L4Re::chksys(child.cfg_read(8, &pci_id_reg, 32),
+                     "Failed to read PCI class ID");
 
         // We just read the third register of the device's configuration
         // space, which is subdivided as follows:
@@ -379,7 +379,7 @@ L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
         // | Dev class ID | Subclass ID | Programming Interface | Revision ID |
         //
         // For, now, we only compare the device's class and the subclass
-        class_id  = (uint8_t) ((pci_id_reg >> 24) & 0xff);          
+        class_id  = (uint8_t) ((pci_id_reg >> 24) & 0xff);
         sclass_id = (uint8_t) ((pci_id_reg >> 16) & 0xff);
         if (class_id != pci_class || sclass_id != pci_sclass) {
             ixl_debug("Skipping device of class 0x%x", class_id);

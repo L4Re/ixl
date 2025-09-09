@@ -54,16 +54,4 @@
 
 #endif
 
-#define check_err(expr, op) ({\
-    int64_t result = (int64_t) (expr);\
-    if ((int64_t) result == -1LL) {\
-        int err = errno;\
-        char buf[512];\
-        strerror_r(err, buf, sizeof(buf));\
-        fprintf(stderr, "[ERROR] %s:%d %s(): Failed to %s: %s\n", __FILE__, __LINE__, __func__, op, buf);\
-        exit(err);\
-    }\
-    result;\
-})
-
 void ixl_hexdump(const void *void_ptr, size_t len);
