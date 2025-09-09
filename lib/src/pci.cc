@@ -359,14 +359,26 @@ L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
 {
     ixl_debug("Starting device discovery...");
     auto root = vbus->root();
-    L4vbus::Pci_dev child;
+    L4vbus::Pci_dev child{};            // Child device for iterating
+    l4vbus_device_t dev_info;           // L4vbus device info about child
 
     unsigned int i         = 0;
-    uint8_t      class_id  = 0;
-    uint8_t      sclass_id = 0;
+    uint8_t      class_id  = 0;         // PCI device class ID
+    uint8_t      sclass_id = 0;         // PCI device subclass ID
+
     // Iterate the vbus until we found the device at index dev_idx
-    while (root.next_device(&child) == L4_EOK) {
+    while (root.next_device(&child, L4VBUS_MAX_DEPTH, &dev_info) == L4_EOK) {
         uint32_t pci_id_reg = 0;
+
+        // Even when only matching for PCI devices, the vbus may contain other
+        // devices such as a device for the ICU. We should not get confused by
+        // those. Non-PCI devices must neither influence matching of PCI
+        // devices by index on the vbus.
+        if (! l4vbus_subinterface_supported(dev_info.type,
+                                            L4VBUS_INTERFACE_PCIDEV)) {
+            ixl_debug("Skipping non-PCI device of type %x...", dev_info.type);
+            continue;
+        }
 
         // Make sure that the device found matches the desired dev class
         L4Re::chksys(child.cfg_read(8, &pci_id_reg, 32),
@@ -395,8 +407,10 @@ L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
     }
 
     // Did we fail to reach a device at index dev_idx?
-    if (class_id != pci_class)
-        ixl_error("Failed to open PCI device at bus index %u", idx);
+    if (class_id != pci_class) {
+        ixl_warn("PCI device at bus index %u is not of expected class %x!",
+                 idx, pci_class);
+    }
 
     return(child);
 }
