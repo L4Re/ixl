@@ -37,9 +37,6 @@
 
 #define ixl_debug(fmt, ...) do {} while(0)
 
-#undef assert
-#define assert(expr) (void) (expr)
-
 #define ixl_info(fmt, ...) do {\
     fprintf(stdout, "[INFO ] " fmt "\n", ##__VA_ARGS__);\
 } while(0)

@@ -164,7 +164,7 @@ uint32_t Ixl::Mempool::pkt_buf_alloc_batch(struct pkt_buf* bufs[],
         Mempool_chunk *chunk = (Mempool_chunk *) chunks[idx].load();
 
         // We should never reach this statement in a mempool that only grows
-        // TODO: User assert instead to purge statement from release builds?
+        // TODO: Use l4_assert instead to purge statement from release builds?
         if (chunk == NULL) {
             ixl_warn("Unexpected invalid chunk pointer in mempool!");
             break;
@@ -197,7 +197,7 @@ struct pkt_buf* Ixl::Mempool::pkt_buf_alloc(void) {
         Mempool_chunk *chunk = (Mempool_chunk *) chunks[idx].load();
 
         // We should never reach this statement in a mempool that only grows
-        // TODO: User assert instead to purge statement from release builds?
+        // TODO: Use l4_assert instead to purge statement from release builds?
         if (chunk == NULL) {
             ixl_warn("Unexpected invalid chunk pointer in mempool!");
             break;
