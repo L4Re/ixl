@@ -3,6 +3,8 @@ L4DIR  ?= $(PKGDIR)/../..
 
 DEFINES-$(CONFIG_IXL_NDEBUG) += -DIXL_NDEBUG
 
+DEFINES += -D_DEFAULT_SOURCE
+
 REQUIRES_LIBS = libpthread libio-vbus libc_support_misc libstdc++
 # If chosen by the user, add jemalloc to the end of the libraries, catching all
 # memory allocation calls.
