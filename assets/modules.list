@@ -1,3 +1,8 @@
+modaddr 0x01100000
+
+default-kernel fiasco -serial_esc
+default-bootstrap bootstrap
+
 entry ixl
 roottask moe rom/ixl.cfg
 module l4re
