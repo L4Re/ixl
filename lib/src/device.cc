@@ -25,6 +25,7 @@
 #include "driver/e1000/e1000.h"
 #include "driver/igb/igb.h"
 #include "driver/ixgbe/ixgbe.h"
+#include "driver/igc/igc.h"
 #include "pci.h"
 
 /****************************************************************************
@@ -174,6 +175,7 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                     return E1000_device::e1000_init(std::move(dev), cfg);
                 // Hereinafter all igb-driver devices
                 case IGB_DEV_ID_82576:
+                case IGB_DEV_ID_I210:
                 case IGB_DEV_ID_I350:
                     ixl_warn("The Igb driver provides only a limited feature "
                              "set. You have been warned!");
@@ -183,6 +185,25 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");
                     return Ixgbe_device::ixgbe_init(std::move(dev), cfg);
+                
+                // Hereinafter all igc-driven devices
+                // i225 NICs
+                case IGC_DEV_ID_I225_LM:
+                case IGC_DEV_ID_I225_V:
+                case IGC_DEV_ID_I225_I:
+                case IGC_DEV_ID_I225_K:
+                case IGC_DEV_ID_I225_K2:
+                case IGC_DEV_ID_I225_LMVP:
+                case IGC_DEV_ID_I225_IT:
+                // i226 NICs
+                case IGC_DEV_ID_I226_K:
+                case IGC_DEV_ID_I226_LMVP:
+                case IGC_DEV_ID_I226_LM:
+                case IGC_DEV_ID_I226_V:
+                case IGC_DEV_ID_I226_IT:
+                    ixl_info("Trying IGC...");
+                    return Igc_device::igc_init(std::move(dev), cfg);
+
                 default:
                     ixl_error("Unsupported device %x of vendor %x. "
                               "No suitable driver found.", device_id,

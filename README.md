@@ -19,6 +19,7 @@ See the table below for a list of device types supported by Ixl:
 |--------|-------------------------|---------------------------------------|
 | e1000  | e1000-compliant NICs    | -                                     |
 | igb    | Intel I350, Intel 82576 | Currently lacks multi-queue support.  |
+| igc    | Intel i225, Intel i226  | Currently lacks multi-queue support.  |
 | ixgbe  | Intel X520/X540         | -                                     |
 
 ## Building
