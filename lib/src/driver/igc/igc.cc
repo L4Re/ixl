@@ -1,18 +1,22 @@
-/**
- * @file igc_type.h
- * @author Paul Richter (paul.richter@spreewalddreieck.de)
- * @brief header file for igc driver
- * @version 1.0
- * @date 2025-11-07
+/*****************************************************************************
+ *                                                                           *
+ *          igc.cc - Implementation for driving igc-style NICs      *
+ *                                                                           *
+ * Copyright (C) 2025 Richter Paul <paul.richter@spreewalddreieck.de>        *
+ *                                                                           *
+ * Many of the contents are adapted from similar header files of the Linux   *
+ * kernel, ixl igb driver and the i225 datasheet.                            * 
+ *                                                                           *
+ * The igc device driver was developed as part of the bachelor thesis:       *
+ * "Generic aspects of porting a Linux Ethernet driver to the                *
+ * L4Re microkernel" It is nearly an identical copy of the ixl igb driver    *
+ * with changed register definitions. More information about how it works    *
+ * can be found there.                                                       *
+ *                                                                           *
+ * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
  *
- * @copyright Copyright (c) 2025
- *
- * The igc device driver was developed as part of the bachelor thesis: "Generic
- * aspects of porting a Linux Ethernet driver to the L4Re microkernel" It is
- * nearly an identical copy of the ixl igb driver with changed register
- * definitions. More information about how it works can be found there. (link
- * will be inserted to a later date)
- */
+ *****************************************************************************/
+
 
 
 #include <l4/re/env>
@@ -24,12 +28,12 @@
 using namespace Ixl;
 
 /****************************************************************************
- * *
- * function implementation                           *
- * *
+ *                                                                          *
+ *                        function implementation                           *
+ *                                                                          *
  ****************************************************************************/
 
- /*** Constructor                            ***/
+ /***                           Constructor                               ***/
 Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
     l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
@@ -47,18 +51,16 @@ Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_
     // Set up IRQ-related data
     if (cfg.irq_timeout_ms < 0) {
         l4tos = l4_timeout_from_us(L4_TIMEOUT_US_NEVER);
-    } else {
+    } 
+    else {
         l4tos = l4_timeout_from_us(cfg.irq_timeout_ms * 1000);
     }
 
     if (cfg.irq_timeout_ms == 0) {
-        // seems to only be used by ixl driver test packages  
         interrupts.mode = interrupt_mode::Disable;
     } else if (cfg.irq_timeout_ms == -1) {
-        // default option set by the Virtual Network Switch
         interrupts.mode = interrupt_mode::Notify;
     } else {
-        // does not seem to be used anywhere
         interrupts.mode = interrupt_mode::Wait;
     }
 
@@ -73,11 +75,10 @@ Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_
     ixl_debug("Mapping BAR0 I/O memory...");
     baddr[0] = pci_map_bar(pci_dev, 0);
 
-    /* dma todo*/
     // Create a DMA space for this device
     create_dma_space();
 
-    if(interrupts.mode != interrupt_mode::Disable) {
+    if (interrupts.mode != interrupt_mode::Disable) {
         // setup icu capability as before managing interrupts (see igb for
         // reference)
         setup_icu_cap();
@@ -89,8 +90,7 @@ Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_
 }
 
 
-
-/* Init functions*/
+/*                              Init functions                                */
 
 Igc_device* Igc_device::igc_init(L4vbus::Pci_dev&& pci_dev,
                                  struct Dev_cfg &cfg) {
@@ -133,34 +133,39 @@ void Igc_device::reset_and_init(void) {
     disable_interrupts();
 
     ixl_info("Reset completed, starting init phase.");
-    /* TODO: perform configuration */
     
     // init link connection
     ixl_debug("Init link connection");
     init_link();
     
-        // Read out MAC address and return.
+    // Read out MAC address and return.
     struct mac_address macAddrStruct = get_mac_addr();
     
     uint32_t linkSpeed = get_link_speed();
     uint32_t linkDuplex = get_link_duplex();
     
-    ixl_info("Exiting (MAC address from EEPROM: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x, link speed: %d, link duplex: %d) ...", 
-        macAddrStruct.addr[0], macAddrStruct.addr[1], macAddrStruct.addr[2], 
-        macAddrStruct.addr[3], macAddrStruct.addr[4], macAddrStruct.addr[5], 
-        linkSpeed, linkDuplex);
+    ixl_info("MAC address from EEPROM: "
+             "0x%x 0x%x 0x%x 0x%x 0x%x 0x%x, "
+             "link speed: %d, link duplex: %d) ...",
+             macAddrStruct.addr[0], macAddrStruct.addr[1],
+             macAddrStruct.addr[2], macAddrStruct.addr[3],
+             macAddrStruct.addr[4], macAddrStruct.addr[5],
+             linkSpeed, linkDuplex);
 
-    /* TODO: initalize stats */
-    /* TODO: initialze Receive & Transmit */
+    // reset statistic registers
+    read_stats(NULL);
+
     init_rx();
-    ixl_debug("Receive should be enabled: %d", get_reg32(baddr[0], IGC_RCTL) & IGC_RCTL_EN);
+    ixl_debug("Receive should be enabled: %d", 
+        get_reg32(baddr[0], IGC_RCTL) & IGC_RCTL_EN);
 
     init_tx();
 
     // Start RX and TX queues
     start_rx_queue(0);
     start_tx_queue(0);
-    ixl_debug("Transmit should be enabled: %d", get_reg32(baddr[0], IGC_TCTL) & IGC_TCTL_EN);
+    ixl_debug("Transmit should be enabled: %d", 
+        get_reg32(baddr[0], IGC_TCTL) & IGC_TCTL_EN);
     usleep(1000);
 
     /* TODO: enable interrupts*/
@@ -178,9 +183,11 @@ void Igc_device::reset_and_init(void) {
         enable_rx_interrupt(0);
     }
 
-    /* enable promiscuous to receive all network packages (without promiscuous
-    the NIC drops all pkgs that are not addressed to it. Destination MAC != NIC
-    MAC)*/
+    /* 
+     * enable promiscuous to receive all network packages (without promiscuous
+     * the NIC drops all pkgs that are not addressed to it. 
+     * Destination MAC != NIC MAC)
+     */
     set_promisc(true);
     
     // if no link is found it waits for 10 secs for link to come up
@@ -195,7 +202,7 @@ void Igc_device::init_link(void) {
     
     ctrl = get_reg32(baddr[0], IGC_CTRL);
 
-    ctrl |= IGC_CTRL_SLU;
+    ctrl |= IGC_CTRL_SLU; // set link up
     ctrl &= ~(IGC_CTRL_FRCSPD | IGC_CTRL_FRCDPX); // force auto-neg and duplex
     
     set_reg32(baddr[0], IGC_CTRL, ctrl);   
@@ -282,7 +289,6 @@ void Igc_device::init_msix(void) {
 }
 
 void Igc_device::init_rx(void) {
-    // function is based on ixl igb driver
     
     // For now we assume that this function is only called immediately after a
     // reset operation with RX and TX disabled, so we do not need to disable
@@ -293,7 +299,6 @@ void Igc_device::init_rx(void) {
 
     for (uint16_t i = 0; i < num_rx_queues; i++) {
         ixl_debug("initializing rx queue %d", i);
-
 
         // Instruct NIC to drop packets if no RX descriptors are available
         // FIXME: When using multiple RX queues, choose the rights SRRCTL reg
@@ -368,20 +373,21 @@ void Igc_device::init_tx(void) {
     }
 }
 
-/* Getter */
+/*                          Getter                                            */
 
-// Get the link speed in Mbps, or 0 if link is down
+/*
+ * Get the link speed in Mbps, or 0 if link is down
+ */
 uint32_t Igc_device::get_link_speed(void) {
 
     uint32_t status = get_reg32(baddr[0], IGC_STATUS);
 
-    if(!(status & IGC_STATUS_LU))
-    {
+    if(!(status & IGC_STATUS_LU)) {
         ixl_info("Can not get link speed, device not up!");
         return 0;
     }
     
-    if(status & IGC_STATUS_SPEED_2500)
+    if (status & IGC_STATUS_SPEED_2500)
         return 2500;
     if(status & IGC_STATUS_SPEED_1000)
         return 1000;
@@ -392,8 +398,6 @@ uint32_t Igc_device::get_link_speed(void) {
 }
 
 uint32_t Igc_device::get_link_duplex(void) {
-
-    // Locals.
 	uint32_t status;
     uint16_t duplex;
 
@@ -401,20 +405,15 @@ uint32_t Igc_device::get_link_duplex(void) {
 	status = get_reg32(baddr[0], IGC_STATUS);
 	if (status & IGC_STATUS_FD) {
 		duplex = FULL_DUPLEX;
-		//ixl_debug("Full Duplex\n");
-	} else {
+	} 
+    else {
 		duplex = HALF_DUPLEX;
-		//ixl_debug("Half Duplex\n");
 	}
 
 	return (uint32_t) duplex; //TODO ideally rename type in device.h to return the enum, need to put enums into shared device.h for example tho
 }
 
 struct mac_address Igc_device::get_mac_addr(void) {
-
-    ixl_info("Entering...");
-
-    // Locals.
     uint32_t rar_high;
     uint32_t rar_low;
     uint16_t i;
@@ -437,8 +436,7 @@ struct mac_address Igc_device::get_mac_addr(void) {
 }
 
 
-
-/* Setter */
+/*                                  Setter                                    */
 
 void Igc_device::set_promisc(bool enabled) {
     // Set / clear settings for both unicast and multicast packets
@@ -457,9 +455,11 @@ void Igc_device::set_mac_addr(struct mac_address mac) {
 }
 
 
-/* Enabler/Disabler */
+/*                          Enabler/Disabler                                  */
 
-// disable all interrupts
+/*
+ * disable all interrupts
+ */
 void Igc_device::disable_interrupts(void) {
     ixl_debug("Masking off all IRQs for Igc device");
     set_reg32(baddr[0], IGC_IMC, 0xffffffff);
@@ -469,11 +469,10 @@ void Igc_device::disable_interrupts(void) {
     get_reg32(baddr[0], IGC_EICR);
 }
 
-
-
-// Enables a receive interrupt of the NIC.
-// */
-void Igc_device::enable_rx_interrupt(uint16_t qid) {
+/*
+ * Enables a receive interrupt of the NIC.
+ */
+ void Igc_device::enable_rx_interrupt(uint16_t qid) {
     // Get MSI-X vector allocated for the respective RX queue
     uint32_t msi_vec = interrupts.queues[qid].msi_vec;
     // Current content of IVAR register
@@ -580,7 +579,7 @@ void Igc_device::start_rx_queue(int queue_id) {
     set_reg32(baddr[0], IGC_RDT, queue->num_entries - 1);
 }
 
-/* Kicks of the TX part by configuring the TCTL register accordingly        */
+/* Kicks of the TX part by configuring the TCTL register accordingly          */
 void Igc_device::start_tx_queue(int queue_id) {
     (void) queue_id;
 
@@ -601,8 +600,7 @@ void Igc_device::start_tx_queue(int queue_id) {
 }
 
 
-
-/* device functions */
+/*                              device functions                              */
 
 void Igc_device::wait_for_link(void) {
 
@@ -627,8 +625,6 @@ void Igc_device::wait_for_link(void) {
 
     ixl_info("Link detection timeout...");
 }
-
-
 
 uint32_t Igc_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
                               uint32_t num_bufs) {
@@ -877,14 +873,18 @@ void Igc_device::read_stats(struct device_stats *stats) {
     }
 }
 
-/* Check, clear and mask the IRQ for the given RX queue.                    */
+/* 
+ * Check, clear and mask the IRQ for the given RX queue.                    
+ */
 bool Igc_device::check_recv_irq(uint16_t qid) {
     (void) qid;
     // Nothing to do, we use a 1:1 mapping of RX queue to MSI-X vector.
     return interrupts.interrupt_type == IXL_IRQ_MSIX;
 }
 
-/* Re-enable (unmask) the IRQ for the given RX queue.                       */
+/* 
+ * Re-enable (unmask) the IRQ for the given RX queue.                       
+ */
 void Igc_device::ack_recv_irq(uint16_t qid) {
     // Was auto-cleared via EIAM. On ack set EIMS, to re-enable the IRQ.
     set_reg32(baddr[0], IGC_EIMS, 1 << interrupts.queues[qid].msi_vec);

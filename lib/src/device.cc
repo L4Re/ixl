@@ -188,19 +188,7 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                 
                 // Hereinafter all igc-driven devices
                 // i225 NICs
-                case IGC_DEV_ID_I225_LM:
-                case IGC_DEV_ID_I225_V:
-                case IGC_DEV_ID_I225_I:
-                case IGC_DEV_ID_I225_K:
-                case IGC_DEV_ID_I225_K2:
-                case IGC_DEV_ID_I225_LMVP:
                 case IGC_DEV_ID_I225_IT:
-                // i226 NICs
-                case IGC_DEV_ID_I226_K:
-                case IGC_DEV_ID_I226_LMVP:
-                case IGC_DEV_ID_I226_LM:
-                case IGC_DEV_ID_I226_V:
-                case IGC_DEV_ID_I226_IT:
                     ixl_info("Trying IGC...");
                     return Igc_device::igc_init(std::move(dev), cfg);
 

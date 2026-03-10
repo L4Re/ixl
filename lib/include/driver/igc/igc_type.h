@@ -1,27 +1,21 @@
-/**
- * @file igc_type.h
- * @author Paul Richter (paul.richter@spreewalddreieck.de)
- * @brief header file for igc driver
- * @version 1.0
- * @date 2025-11-07
- *
- * @copyright Copyright (c) 2025
- *
- * The igc device driver was developed as part of the bachelor thesis: "Generic
- * aspects of porting a Linux Ethernet driver to the L4Re microkernel" It is
- * nearly an identical copy of the ixl igb driver with changed register
- * definitions. More information about how it works can be found there. (link
- * will be inserted to a later date)
- */
-
- /*****************************************************************************
+/*****************************************************************************
  *                                                                           *
- *        igc_type.h - Various definitions for driving igc-style NICs        *
+ *          igc_type.h - Various definitions for driving igc-style NICs      *
+ *                                                                           *
+ * Copyright (C) 2025 Richter Paul <paul.richter@spreewalddreieck.de>        *
  *                                                                           *
  * Many of the contents are adapted from similar header files of the Linux   *
- * kernel, ixl igb driver and the i225 datasheet.                            *
+ * kernel, ixl igb driver and the i225 datasheet.                            * 
  *                                                                           *
- ****************************************************************************/
+ * The igc device driver was developed as part of the bachelor thesis:       *
+ * "Generic aspects of porting a Linux Ethernet driver to the                *
+ * L4Re microkernel" It is nearly an identical copy of the ixl igb driver    *
+ * with changed register definitions. More information about how it works    *
+ * can be found there.                                                       *
+ *                                                                           *
+ * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
+ *
+ *****************************************************************************/
 
 #ifndef _IGC_TYPE_H_
 #define _IGC_TYPE_H_
@@ -64,60 +58,60 @@ struct igc_tx_desc {
 #define IGC_DEV_ID_I225_K			0x3100
 #define IGC_DEV_ID_I225_K2			0x3101
 #define IGC_DEV_ID_I226_K			0x3102
-#define IGC_DEV_ID_I225_LMVP			0x5502
-#define IGC_DEV_ID_I226_LMVP			0x5503
+#define IGC_DEV_ID_I225_LMVP	    0x5502
+#define IGC_DEV_ID_I226_LMVP		0x5503
 #define IGC_DEV_ID_I225_IT			0x0D9F
 #define IGC_DEV_ID_I226_LM			0x125B
 #define IGC_DEV_ID_I226_V			0x125C
 #define IGC_DEV_ID_I226_IT			0x125D
 #define IGC_DEV_ID_I221_V			0x125E
-#define IGC_DEV_ID_I226_BLANK_NVM		0x125F
-#define IGC_DEV_ID_I225_BLANK_NVM		0x15FD
+#define IGC_DEV_ID_I226_BLANK_NVM	0x125F
+#define IGC_DEV_ID_I225_BLANK_NVM	0x15FD
 
 // General registers (taken from Linux IGC driver /igc_regs.h line 7)
-#define IGC_CTRL		                0x00000  /* Device Control - RW */
-#define IGC_STATUS		                0x00008  /* Device Status - RO */
-#define IGC_EECD		                0x00010  /* EEPROM/Flash Control - RW */
-#define IGC_CTRL_EXT		            0x00018  /* Extended Device Control - RW */
-#define IGC_MDIC		                0x00020  /* MDI Control - RW */
-#define IGC_CONNSW		                0x00034  /* Copper/Fiber switch control - RW */
-#define IGC_VET			                0x00038  /* VLAN Ether Type - RW */
-#define IGC_LEDCTL		                0x00E00	 /* LED Control - RW */
-#define IGC_I225_PHPM		            0x00E14  /* I225 PHY Power Management */
-#define IGC_GPHY_VERSION	            0x0001E  /* I225 gPHY Firmware Version */
+#define IGC_CTRL            0x00000  /* Device Control - RW                   */
+#define IGC_STATUS          0x00008  /* Device Status - RO                    */
+#define IGC_EECD            0x00010  /* EEPROM/Flash Control - RW             */
+#define IGC_CTRL_EXT        0x00018  /* Extended Device Control - RW          */
+#define IGC_MDIC            0x00020  /* MDI Control - RW                      */
+#define IGC_CONNSW          0x00034  /* Copper/Fiber switch control - RW      */
+#define IGC_VET             0x00038  /* VLAN Ether Type - RW                  */
+#define IGC_LEDCTL          0x00E00  /* LED Control - RW                      */
+#define IGC_I225_PHPM       0x00E14  /* I225 PHY Power Management             */
+#define IGC_GPHY_VERSION    0x0001E  /* I225 gPHY Firmware Version            */
 
 // igc_regs.h line 44
 /* Interrupt Register Description */
-#define IGC_EICR		0x01580  /* Ext. Interrupt Cause read - W0 */
-#define IGC_EICS		0x01520  /* Ext. Interrupt Cause Set - W0 */
-#define IGC_EIMS		0x01524  /* Ext. Interrupt Mask Set/Read - RW */
-#define IGC_EIMC		0x01528  /* Ext. Interrupt Mask Clear - WO */
-#define IGC_EIAC		0x0152C  /* Ext. Interrupt Auto Clear - RW */
-#define IGC_EIAM		0x01530  /* Ext. Interrupt Auto Mask - RW */
-#define IGC_ICR			0x01500  /* Intr Cause Read - RC/W1C */
-#define IGC_ICS			0x01504  /* Intr Cause Set - WO */
-#define IGC_IMS			0x01508  /* Intr Mask Set/Read - RW */
-#define IGC_IMC			0x0150C  /* Intr Mask Clear - WO */
-#define IGC_IAM			0x01510  /* Intr Ack Auto Mask- RW */
+#define IGC_EICR		0x01580  /* Ext. Interrupt Cause read - W0            */
+#define IGC_EICS		0x01520  /* Ext. Interrupt Cause Set - W0             */
+#define IGC_EIMS		0x01524  /* Ext. Interrupt Mask Set/Read - RW         */
+#define IGC_EIMC		0x01528  /* Ext. Interrupt Mask Clear - WO            */
+#define IGC_EIAC		0x0152C  /* Ext. Interrupt Auto Clear - RW            */
+#define IGC_EIAM		0x01530  /* Ext. Interrupt Auto Mask - RW             */
+#define IGC_ICR			0x01500  /* Intr Cause Read - RC/W1C                  */
+#define IGC_ICS			0x01504  /* Intr Cause Set - WO                       */
+#define IGC_IMS			0x01508  /* Intr Mask Set/Read - RW                   */
+#define IGC_IMC			0x0150C  /* Intr Mask Clear - WO                      */
+#define IGC_IAM			0x01510  /* Intr Ack Auto Mask- RW                    */
 /* Intr Throttle - RW */
 #define IGC_EITR		0x01680
 /* Interrupt Vector Allocation - RW */
 #define IGC_IVAR0		0x01700
-#define IGC_IVAR_MISC		0x01740  /* IVAR for "other" causes - RW */
-#define IGC_GPIE		0x01514  /* General Purpose Intr Enable - RW */
+#define IGC_IVAR_MISC	0x01740  /* IVAR for "other" causes - RW              */
+#define IGC_GPIE		0x01514  /* General Purpose Intr Enable - RW          */
 
 // igc_defines.h 304
 /* Receive Descriptor bit definitions */
-#define IGC_RXD_STAT_DD		0x01    /* Descriptor Done */
+#define IGC_RXD_STAT_DD		0x01  /* Descriptor Done */
 // igc_defines.h 370
-#define IGC_RXD_STAT_EOP	0x02	/* End of Packet */
+#define IGC_RXD_STAT_EOP	0x02  /* End of Packet */
 //
 #define IGC_RDH		0x0C010
 #define IGC_RDT		0x0C018
 
 // (igc_regs.h line 64)
 /* RSS registers */
-#define IGC_MRQC		0x05818 /* Multiple Receive Control - RW */
+#define IGC_MRQC		0x05818  /* Multiple Receive Control - RW */
 
 // (igc_defines.h line 386)
 #define IGC_MRQC_ENABLE_RSS_MQ		0x00000002
@@ -162,14 +156,14 @@ struct igc_tx_desc {
 // (igc_regs.h line 223).
 
 // Device Status
-#define IGC_STATUS_FD		            0x00000001      /* Full duplex.0=half,1=full */
-#define IGC_STATUS_LU		            0x00000002      /* Link up.0=no,1=link */
-#define IGC_STATUS_FUNC_MASK	        0x0000000C      /* PCI Function Mask */
-#define IGC_STATUS_FUNC_SHIFT	        2
-#define IGC_STATUS_TXOFF	            0x00000010      /* transmission paused */
-#define IGC_STATUS_SPEED_100	        0x00000040      /* Speed 100Mb/s */
-#define IGC_STATUS_SPEED_1000	        0x00000080      /* Speed 1000Mb/s */
-#define IGC_STATUS_SPEED_2500	        0x00400000	/* Speed 2.5Gb/s */
+#define IGC_STATUS_FD		         0x00000001  /* Full duplex.0=half,1=full */
+#define IGC_STATUS_LU		         0x00000002  /* Link up.0=no,1=link       */
+#define IGC_STATUS_FUNC_MASK	     0x0000000C  /* PCI Function Mask         */
+#define IGC_STATUS_FUNC_SHIFT	     2
+#define IGC_STATUS_TXOFF	         0x00000010  /* transmission paused       */
+#define IGC_STATUS_SPEED_100	     0x00000040  /* Speed 100Mb/s             */
+#define IGC_STATUS_SPEED_1000	     0x00000080  /* Speed 1000Mb/s            */
+#define IGC_STATUS_SPEED_2500	     0x00400000	 /* Speed 2.5Gb/s             */
 
 #define SPEED_10		10
 #define SPEED_100		100
@@ -181,9 +175,9 @@ struct igc_tx_desc {
 typedef enum
 {
     LINK_SPEED_UNDEFINED = 0,
-    LINK_SPEED_10 = 10 /* 10 MiB / s */,
-    LINK_SPEED_100 = 100 /* 100 MiB / s */,
-    LINK_SPEED_1000 = 1000 /* 1000 MiB / s */,
+    LINK_SPEED_10 = 10      /* 10 MiB / s */,
+    LINK_SPEED_100 = 100    /* 100 MiB / s */,
+    LINK_SPEED_1000 = 1000  /* 1000 MiB / s */,
     LINK_SPEED_2500 = 2500 /* 2500 MiB / s*/,
 } EnumLinkSpeed;
 

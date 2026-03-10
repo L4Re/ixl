@@ -1,29 +1,23 @@
-/**
- * @file igc.h
- * @author Paul Richter (paul.richter@spreewalddreieck.de)
- * @brief header of igc driver containing class Igc_device
- * @version 0.1
- * @date 2025-11-07
+/*****************************************************************************
+ *                                                                           *
+ *          igc.h - Header for a simple Igc device driver on L4.             *
+ *                                                                           *
+ * Copyright (C) 2025 Richter Paul <paul.richter@spreewalddreieck.de>        *
+ *                                                                           *
+ * The igc device driver was developed as part of the bachelor thesis:       *
+ * "Generic aspects of porting a Linux Ethernet driver to the                *
+ * L4Re microkernel" It is nearly an identical copy of the ixl igb driver    *
+ * with changed register definitions. More information about how it works    *
+ * can be found there.                                                       *
+ *                                                                           *
+ * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
  *
- * @copyright Copyright (c) 2025
- *
- * The igc device driver was developed as part of the bachelor thesis: "Generic
- * aspects of porting a Linux Ethernet driver to the L4Re microkernel" It is
- * nearly an identical copy of the ixl igb driver with changed register
- * definitions. More information about how it works can be found there. (link
- * will be inserted to a later date)
- */
+ *****************************************************************************/
 
- /* 
-    Header file containing the structure of the ixl igc device driver heavly
-    based on the ixl igb device driver
- */
 
 #pragma once
 
-#include <stdbool.h>
 #include <l4/ixl/stats.h>
-
 #include <l4/ixl/memory.h>
 
 #include "igc_type.h"
@@ -176,7 +170,7 @@ private:
 
 
 
-    /*** Functions                              ***/
+    /***                            Functions                               ***/
 
     /**
      * Enables an MSI for receive events. We will configure the NIC in a way
@@ -184,7 +178,7 @@ private:
      * ITR limit that the user can specify upon initializing the driver.
      *
      * \param qid Index of the queue for that the corresponding MSI-X shall be
-     * enabled.
+     *  enabled.
      */
     void enable_rx_interrupt(uint16_t qid);
 
@@ -192,7 +186,7 @@ private:
      * Disables an MSI for receive events.
      *
      * \param qid Index of the RX queue for that the corresponding MSI-X shall
-     * be disabled.
+     *            be disabled.
      */
     void disable_rx_interrupt(uint16_t qid);
 
@@ -214,7 +208,7 @@ private:
 
     void init_msix(void);
 
-    /*** Member variables                          ***/
+    /***                          Member variables                          ***/
 
     // MAC address of this device
     struct mac_address mac_addr;
