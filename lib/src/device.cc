@@ -185,13 +185,11 @@ Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                 case IXGBE_DEV_ID_82598:
                     ixl_info("Trying ixgbe...");
                     return Ixgbe_device::ixgbe_init(std::move(dev), cfg);
-                
                 // Hereinafter all igc-driven devices
                 // i225 NICs
                 case IGC_DEV_ID_I225_IT:
-                    ixl_info("Trying IGC...");
+                    ixl_info("Trying igc...");
                     return Igc_device::igc_init(std::move(dev), cfg);
-
                 default:
                     ixl_error("Unsupported device %x of vendor %x. "
                               "No suitable driver found.", device_id,
