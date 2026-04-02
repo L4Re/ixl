@@ -14,7 +14,7 @@
  * can be found there.                                                       *
  *                                                                           *
  * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
- *
+ *                                                                           *
  *****************************************************************************/
 
 #ifndef _IGC_TYPE_H_
@@ -102,23 +102,23 @@ struct igc_tx_desc {
 
 // igc_defines.h 304
 /* Receive Descriptor bit definitions */
-#define IGC_RXD_STAT_DD		0x01  /* Descriptor Done */
+#define IGC_RXD_STAT_DD		0x01  /* Descriptor Done                          */
 // igc_defines.h 370
-#define IGC_RXD_STAT_EOP	0x02  /* End of Packet */
+#define IGC_RXD_STAT_EOP	0x02  /* End of Packet                            */
 //
 #define IGC_RDH		0x0C010
 #define IGC_RDT		0x0C018
 
 // (igc_regs.h line 64)
 /* RSS registers */
-#define IGC_MRQC		0x05818  /* Multiple Receive Control - RW */
+#define IGC_MRQC		0x05818  /* Multiple Receive Control - RW             */
 
 // (igc_defines.h line 386)
 #define IGC_MRQC_ENABLE_RSS_MQ		0x00000002
 
 /* transmit descriptor defines */
 // (igc_regs.h line 114)
-#define IGC_TCTL		0x00400  /* Tx Control - RW */
+#define IGC_TCTL		0x00400  /* Tx Control - RW                           */
 #define IGC_TDBAL       0x0E000
 #define IGC_TDBAH       0x0E004
 #define IGC_TDLEN       0x0E008
@@ -130,13 +130,13 @@ struct igc_tx_desc {
 #define IGC_TXDCTL_EN   0x02000000
 
 // adapated from igb RX checksum control register
-#define IGC_RXCSUM_TUOFL  0x00000200    /* TCP & UDP csum offloading        */
-#define IGC_RXCSUM_CRCOFL 0x00000800    /* CRC32 offload enable             */
+#define IGC_RXCSUM_TUOFL  0x00000200    /* TCP & UDP csum offloading          */
+#define IGC_RXCSUM_CRCOFL 0x00000800    /* CRC32 offload enable               */
 
 // (igc_defines.h 313)
 /* Transmit descriptor defines */
-#define IGC_TXD_CMD_EOP		0x01000000 /* End of Packet */
-#define IGC_TXD_STAT_DD		0x00000001 /* Descriptor Done */
+#define IGC_TXD_CMD_EOP		0x01000000 /* End of Packet                       */
+#define IGC_TXD_STAT_DD		0x00000001 /* Descriptor Done                     */
 
 // copied from igb driver
 #define IGC_TXD_CMD_IFCS    0x02000000
@@ -144,9 +144,9 @@ struct igc_tx_desc {
 
 // (igc_defines.h 331)
 /* Transmit Control */
-#define IGC_TCTL_EN		0x00000002 /* enable Tx */
-#define IGC_TCTL_PSP	0x00000008 /* pad short packets */
-#define IGC_TCTL_CT		0x00000ff0 /* collision threshold */
+#define IGC_TCTL_EN		0x00000002 /* enable Tx                               */
+#define IGC_TCTL_PSP	0x00000008 /* pad short packets                       */
+#define IGC_TCTL_CT		0x00000ff0 /* collision threshold                     */
 
 // (igc_defines.h 217)
 /* Collision related configuration parameters */
@@ -175,10 +175,10 @@ struct igc_tx_desc {
 typedef enum
 {
     LINK_SPEED_UNDEFINED = 0,
-    LINK_SPEED_10 = 10      /* 10 MiB / s */,
-    LINK_SPEED_100 = 100    /* 100 MiB / s */,
-    LINK_SPEED_1000 = 1000  /* 1000 MiB / s */,
-    LINK_SPEED_2500 = 2500 /* 2500 MiB / s*/,
+    LINK_SPEED_10 =        10,      /* 10   MiB / s                           */
+    LINK_SPEED_100 =       100,     /* 100  MiB / s                           */
+    LINK_SPEED_1000 =      1000,    /* 1000 MiB / s                           */
+    LINK_SPEED_2500 =      2500,    /* 2500 MiB / s                           */
 } EnumLinkSpeed;
 
 typedef enum{
@@ -199,123 +199,123 @@ typedef enum{
 
 // taken from igc_defines.h 131
 /* Device Control */  
-#define IGC_CTRL_RST		0x04000000  /* Global reset */
+#define IGC_CTRL_RST		0x04000000  /* Global reset                       */
 
-#define IGC_CTRL_PHY_RST	0x80000000  /* PHY Reset */
-#define IGC_CTRL_SLU		0x00000040  /* Set link up (Force Link) */
-#define IGC_CTRL_FRCSPD		0x00000800  /* Force Speed */
-#define IGC_CTRL_FRCDPX		0x00001000  /* Force Duplex */
+#define IGC_CTRL_PHY_RST	0x80000000  /* PHY Reset                          */
+#define IGC_CTRL_SLU		0x00000040  /* Set link up (Force Link)           */
+#define IGC_CTRL_FRCSPD		0x00000800  /* Force Speed                        */
+#define IGC_CTRL_FRCDPX		0x00001000  /* Force Duplex                       */
 
 // Receive registers (taken from igc_defines.h line 347 and igc_regs.h line 98).
-#define IGC_RCTL		                0x00100  /* Rx Control - RW */
-#define IGC_RCTL_RST		            0x00000001 /* Software reset */
-#define IGC_RCTL_EN		                0x00000002 /* enable */
-#define IGC_RCTL_SBP		            0x00000004 /* store bad packet */
-#define IGC_RCTL_UPE		            0x00000008 /* unicast promisc enable */
-#define IGC_RCTL_MPE		            0x00000010 /* multicast promisc enable */
-#define IGC_RCTL_LPE		            0x00000020 /* long packet enable */
-#define IGC_RCTL_LBM_MAC	            0x00000040 /* MAC loopback mode */
-#define IGC_RCTL_LBM_TCVR	            0x000000C0 /* tcvr loopback mode */
+#define IGC_RCTL		                0x00100    /* Rx Control - RW         */
+#define IGC_RCTL_RST		            0x00000001 /* Software reset          */
+#define IGC_RCTL_EN		                0x00000002 /* enable                  */
+#define IGC_RCTL_SBP		            0x00000004 /* store bad packet        */
+#define IGC_RCTL_UPE		            0x00000008 /* unicast promisc enable  */
+#define IGC_RCTL_MPE		            0x00000010 /* multicast promisc enable*/
+#define IGC_RCTL_LPE		            0x00000020 /* long packet enable      */
+#define IGC_RCTL_LBM_MAC	            0x00000040 /* MAC loopback mode       */
+#define IGC_RCTL_LBM_TCVR	            0x000000C0 /* tcvr loopback mode      */
 #define IGC_RCTL_RDMTS_HALF	            0x00000000 /* Rx desc min thresh size */
-#define IGC_RCTL_BAM		            0x00008000 /* broadcast enable */
+#define IGC_RCTL_BAM		            0x00008000 /* broadcast enable        */
 
 // from igb linux header confirmed with i225 datasheet that bit mask is the same
-#define IGC_RCTL_VFE                    0x00040000 /* VLAN Filter */                      
+#define IGC_RCTL_VFE                    0x00040000 /* VLAN Filter             */                      
 
-#define IGC_SRRCTL0	                    0x0C00C // adapted from igc_regs.h line 94
-#define IGC_PSRTYPE 		            0x05480
-#define IGC_RDBAL   		            0x0C000
-#define IGC_RDBAH   		            0x0C004
-#define IGC_RDLEN   		            0x0C008
-#define IGC_RXDCTL0  		            0x0C028
-#define IGC_RQDPC   		            0x0C030
-#define IGC_RXCSUM		                0x05000  /* Rx Checksum Control - RW */
-#define IGC_RLPML		                0x05004  /* Rx Long Packet Max Length */
-#define IGC_RFCTL		                0x05008  /* Receive Filter Control*/
-#define IGC_MTA			                0x05200  /* Multicast Table Array - RW Array */
-#define IGC_RA			                0x05400  /* Receive Address - RW Array */
-#define IGC_UTA			                0x0A000  /* Unicast Table Array - RW */
-#define IGC_RAL(_n)		                (0x05400 + ((_n) * 0x08))
-#define IGC_RAL_MAC_ADDR_LEN	        4
-#define IGC_RAH(_n)		                (0x05404 + ((_n) * 0x08))
-#define IGC_RAH_MAC_ADDR_LEN	        2
-#define IGC_VLANPQF		                0x055B0  /* VLAN Priority Queue Filter - RW */
+#define IGC_SRRCTL0	             0x0C00C /* adapted from igc_regs.h line 94   */
+#define IGC_PSRTYPE 		     0x05480
+#define IGC_RDBAL   		     0x0C000
+#define IGC_RDBAH   		     0x0C004
+#define IGC_RDLEN   		     0x0C008
+#define IGC_RXDCTL0  		     0x0C028
+#define IGC_RQDPC   		     0x0C030
+#define IGC_RXCSUM		         0x05000 /* Rx Checksum Control - RW          */
+#define IGC_RLPML		         0x05004 /* Rx Long Packet Max Length         */
+#define IGC_RFCTL		         0x05008 /* Receive Filter Control            */
+#define IGC_MTA			         0x05200 /* Multicast Table Array - RW Array  */
+#define IGC_RA			         0x05400 /* Receive Address - RW Array        */
+#define IGC_UTA			         0x0A000 /* Unicast Table Array - RW          */
+#define IGC_RAL(_n)		         (0x05400 + ((_n) * 0x08))
+#define IGC_RAL_MAC_ADDR_LEN	 4
+#define IGC_RAH(_n)		         (0x05404 + ((_n) * 0x08))
+#define IGC_RAH_MAC_ADDR_LEN	 2
+#define IGC_VLANPQF		         0x055B0 /* VLAN Priority Queue Filter - RW   */
 
-#define IGC_RXDCTL_EN		0x02000000 // adapted from igc.h line 491
+#define IGC_RXDCTL_EN		0x02000000 /* adapted from igc.h line 491         */
 
 // copied from igb crossreferenced in datasheet to ensure that it's the same for
 // igc
-#define IGC_SRRCTL_DREN     0x80000000    /* Drop enabled if no descr. avail. */
+#define IGC_SRRCTL_DREN     0x80000000 /* Drop enabled if no descr. avail.    */
 
-#define ETH_ALEN                        6 /* length of Ethernet/MAC address */
+#define ETH_ALEN                        6 /* length of Ethernet/MAC address   */
 
 // Statistics registers.
-#define IGC_CRCERRS	                    0x04000  /* CRC Error Count - R/clr */
-#define IGC_ALGNERRC	                0x04004  /* Alignment Error Count - R/clr */
-#define IGC_RXERRC	                    0x0400C  /* Receive Error Count - R/clr */
-#define IGC_MPC							0x04010  /* Missed Packet Count - R/clr */
-#define IGC_SCC							0x04014  /* Single Collision Count - R/clr */
-#define IGC_ECOL						0x04018  /* Excessive Collision Count - R/clr */
-#define IGC_MCC							0x0401C  /* Multiple Collision Count - R/clr */
-#define IGC_LATECOL						0x04020  /* Late Collision Count - R/clr */
-#define IGC_COLC						0x04028  /* Collision Count - R/clr */
-#define IGC_RERC						0x0402C  /* Receive Error Count - R/clr */
-#define IGC_DC							0x04030  /* Defer Count - R/clr */
-#define IGC_TNCRS						0x04034  /* Tx-No CRS - R/clr */
-#define IGC_HTDPMC						0x0403C  /* Host Transmit Discarded by MAC - R/clr */
-#define IGC_RLEC						0x04040  /* Receive Length Error Count - R/clr */
-#define IGC_XONRXC						0x04048  /* XON Rx Count - R/clr */
-#define IGC_XONTXC						0x0404C  /* XON Tx Count - R/clr */
-#define IGC_XOFFRXC						0x04050  /* XOFF Rx Count - R/clr */
-#define IGC_XOFFTXC						0x04054  /* XOFF Tx Count - R/clr */
-#define IGC_FCRUC						0x04058  /* Flow Control Rx Unsupported Count- R/clr */
-#define IGC_PRC64						0x0405C  /* Packets Rx (64 bytes) - R/clr */
-#define IGC_PRC127						0x04060  /* Packets Rx (65-127 bytes) - R/clr */
-#define IGC_PRC255						0x04064  /* Packets Rx (128-255 bytes) - R/clr */
-#define IGC_PRC511						0x04068  /* Packets Rx (255-511 bytes) - R/clr */
-#define IGC_PRC1023						0x0406C  /* Packets Rx (512-1023 bytes) - R/clr */
-#define IGC_PRC1522						0x04070  /* Packets Rx (1024-1522 bytes) - R/clr */
-#define IGC_GPRC						0x04074  /* Good Packets Rx Count - R/clr */
-#define IGC_BPRC						0x04078  /* Broadcast Packets Rx Count - R/clr */
-#define IGC_MPRC						0x0407C  /* Multicast Packets Rx Count - R/clr */
-#define IGC_GPTC						0x04080  /* Good Packets Tx Count - R/clr */
-#define IGC_GORCL						0x04088  /* Good Octets Rx Count Low - R/clr */
-#define IGC_GORCH						0x0408C  /* Good Octets Rx Count High - R/clr */
-#define IGC_GOTCL						0x04090  /* Good Octets Tx Count Low - R/clr */
-#define IGC_GOTCH						0x04094  /* Good Octets Tx Count High - R/clr */
-#define IGC_RNBC						0x040A0  /* Rx No Buffers Count - R/clr */
-#define IGC_RUC							0x040A4  /* Rx Undersize Count - R/clr */
-#define IGC_RFC							0x040A8  /* Rx Fragment Count - R/clr */
-#define IGC_ROC							0x040AC  /* Rx Oversize Count - R/clr */
-#define IGC_RJC							0x040B0  /* Rx Jabber Count - R/clr */
-#define IGC_MGTPRC						0x040B4  /* Management Packets Rx Count - R/clr */
-#define IGC_MGTPDC						0x040B8  /* Management Packets Dropped Count - R/clr */
-#define IGC_MGTPTC						0x040BC  /* Management Packets Tx Count - R/clr */
-#define IGC_TORL						0x040C0  /* Total Octets Rx Low - R/clr */
-#define IGC_TORH						0x040C4  /* Total Octets Rx High - R/clr */
-#define IGC_TOTL						0x040C8  /* Total Octets Tx Low - R/clr */
-#define IGC_TOTH						0x040CC  /* Total Octets Tx High - R/clr */
-#define IGC_TPR							0x040D0  /* Total Packets Rx - R/clr */
-#define IGC_TPT							0x040D4  /* Total Packets Tx - R/clr */
-#define IGC_PTC64						0x040D8  /* Packets Tx (64 bytes) - R/clr */
-#define IGC_PTC127						0x040DC  /* Packets Tx (65-127 bytes) - R/clr */
-#define IGC_PTC255						0x040E0  /* Packets Tx (128-255 bytes) - R/clr */
-#define IGC_PTC511						0x040E4  /* Packets Tx (256-511 bytes) - R/clr */
-#define IGC_PTC1023						0x040E8  /* Packets Tx (512-1023 bytes) - R/clr */
-#define IGC_PTC1522						0x040EC  /* Packets Tx (1024-1522 Bytes) - R/clr */
-#define IGC_MPTC						0x040F0  /* Multicast Packets Tx Count - R/clr */
-#define IGC_BPTC						0x040F4  /* Broadcast Packets Tx Count - R/clr */
-#define IGC_TSCTC						0x040F8  /* TCP Segmentation Context Tx - R/clr */
-#define IGC_IAC							0x04100  /* Interrupt Assertion Count */
-#define IGC_RPTHC						0x04104  /* Rx Packets To Host */
-#define IGC_TLPIC						0x04148  /* EEE Tx LPI Count */
-#define IGC_RLPIC						0x0414C  /* EEE Rx LPI Count */
-#define IGC_HGPTC						0x04118  /* Host Good Packets Tx Count */
-#define IGC_RXDMTC						0x04120  /* Rx Descriptor Minimum Threshold Count */
-#define IGC_HGORCL						0x04128  /* Host Good Octets Received Count Low */
-#define IGC_HGORCH						0x0412C  /* Host Good Octets Received Count High */
-#define IGC_HGOTCL						0x04130  /* Host Good Octets Transmit Count Low */
-#define IGC_HGOTCH						0x04134  /* Host Good Octets Transmit Count High */
-#define IGC_LENERRS						0x04138  /* Length Errors Count */
+#define IGC_CRCERRS	    0x04000  /* CRC Error Count - R/clr                   */
+#define IGC_ALGNERRC	0x04004  /* Alignment Error Count - R/clr             */
+#define IGC_RXERRC	    0x0400C  /* Receive Error Count - R/clr               */
+#define IGC_MPC			0x04010  /* Missed Packet Count - R/clr               */
+#define IGC_SCC			0x04014  /* Single Collision Count - R/clr            */
+#define IGC_ECOL		0x04018  /* Excessive Collision Count - R/clr         */
+#define IGC_MCC			0x0401C  /* Multiple Collision Count - R/clr          */
+#define IGC_LATECOL		0x04020  /* Late Collision Count - R/clr              */
+#define IGC_COLC		0x04028  /* Collision Count - R/clr                   */
+#define IGC_RERC		0x0402C  /* Receive Error Count - R/clr               */
+#define IGC_DC			0x04030  /* Defer Count - R/clr                       */
+#define IGC_TNCRS		0x04034  /* Tx-No CRS - R/clr                         */
+#define IGC_HTDPMC		0x0403C  /* Host Transmit Discarded by MAC - R/clr    */
+#define IGC_RLEC		0x04040  /* Receive Length Error Count - R/clr        */
+#define IGC_XONRXC		0x04048  /* XON Rx Count - R/clr                      */
+#define IGC_XONTXC		0x0404C  /* XON Tx Count - R/clr                      */
+#define IGC_XOFFRXC		0x04050  /* XOFF Rx Count - R/clr                     */
+#define IGC_XOFFTXC		0x04054  /* XOFF Tx Count - R/clr                     */
+#define IGC_FCRUC		0x04058  /* Flow Control Rx Unsupported Count- R/clr  */
+#define IGC_PRC64		0x0405C  /* Packets Rx (64 bytes) - R/clr             */
+#define IGC_PRC127		0x04060  /* Packets Rx (65-127 bytes) - R/clr         */
+#define IGC_PRC255		0x04064  /* Packets Rx (128-255 bytes) - R/clr        */
+#define IGC_PRC511		0x04068  /* Packets Rx (255-511 bytes) - R/clr        */
+#define IGC_PRC1023		0x0406C  /* Packets Rx (512-1023 bytes) - R/clr       */
+#define IGC_PRC1522		0x04070  /* Packets Rx (1024-1522 bytes) - R/clr      */
+#define IGC_GPRC		0x04074  /* Good Packets Rx Count - R/clr             */
+#define IGC_BPRC		0x04078  /* Broadcast Packets Rx Count - R/clr        */
+#define IGC_MPRC		0x0407C  /* Multicast Packets Rx Count - R/clr        */
+#define IGC_GPTC		0x04080  /* Good Packets Tx Count - R/clr             */
+#define IGC_GORCL		0x04088  /* Good Octets Rx Count Low - R/clr          */
+#define IGC_GORCH		0x0408C  /* Good Octets Rx Count High - R/clr         */
+#define IGC_GOTCL		0x04090  /* Good Octets Tx Count Low - R/clr          */
+#define IGC_GOTCH		0x04094  /* Good Octets Tx Count High - R/clr         */
+#define IGC_RNBC		0x040A0  /* Rx No Buffers Count - R/clr               */
+#define IGC_RUC			0x040A4  /* Rx Undersize Count - R/clr                */
+#define IGC_RFC			0x040A8  /* Rx Fragment Count - R/clr                 */
+#define IGC_ROC			0x040AC  /* Rx Oversize Count - R/clr                 */
+#define IGC_RJC			0x040B0  /* Rx Jabber Count - R/clr                   */
+#define IGC_MGTPRC		0x040B4  /* Management Packets Rx Count - R/clr       */
+#define IGC_MGTPDC		0x040B8  /* Management Packets Dropped Count - R/clr  */
+#define IGC_MGTPTC		0x040BC  /* Management Packets Tx Count - R/clr       */
+#define IGC_TORL		0x040C0  /* Total Octets Rx Low - R/clr               */
+#define IGC_TORH		0x040C4  /* Total Octets Rx High - R/clr              */
+#define IGC_TOTL		0x040C8  /* Total Octets Tx Low - R/clr               */
+#define IGC_TOTH		0x040CC  /* Total Octets Tx High - R/clr              */
+#define IGC_TPR			0x040D0  /* Total Packets Rx - R/clr                  */
+#define IGC_TPT			0x040D4  /* Total Packets Tx - R/clr                  */
+#define IGC_PTC64		0x040D8  /* Packets Tx (64 bytes) - R/clr             */
+#define IGC_PTC127		0x040DC  /* Packets Tx (65-127 bytes) - R/clr         */
+#define IGC_PTC255		0x040E0  /* Packets Tx (128-255 bytes) - R/clr        */
+#define IGC_PTC511		0x040E4  /* Packets Tx (256-511 bytes) - R/clr        */
+#define IGC_PTC1023		0x040E8  /* Packets Tx (512-1023 bytes) - R/clr       */
+#define IGC_PTC1522		0x040EC  /* Packets Tx (1024-1522 Bytes) - R/clr      */
+#define IGC_MPTC		0x040F0  /* Multicast Packets Tx Count - R/clr        */
+#define IGC_BPTC		0x040F4  /* Broadcast Packets Tx Count - R/clr        */
+#define IGC_TSCTC		0x040F8  /* TCP Segmentation Context Tx - R/clr       */
+#define IGC_IAC			0x04100  /* Interrupt Assertion Count                 */
+#define IGC_RPTHC		0x04104  /* Rx Packets To Host                        */
+#define IGC_TLPIC		0x04148  /* EEE Tx LPI Count                          */
+#define IGC_RLPIC		0x0414C  /* EEE Rx LPI Count                          */
+#define IGC_HGPTC		0x04118  /* Host Good Packets Tx Count                */
+#define IGC_RXDMTC		0x04120  /* Rx Descriptor Minimum Threshold Count     */
+#define IGC_HGORCL		0x04128  /* Host Good Octets Received Count Low       */
+#define IGC_HGORCH		0x0412C  /* Host Good Octets Received Count High      */
+#define IGC_HGOTCL		0x04130  /* Host Good Octets Transmit Count Low       */
+#define IGC_HGOTCH		0x04134  /* Host Good Octets Transmit Count High      */
+#define IGC_LENERRS		0x04138  /* Length Errors Count                       */
 
 #endif /* _IGC_TYPE_H_ */
