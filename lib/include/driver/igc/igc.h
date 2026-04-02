@@ -11,7 +11,7 @@
  * can be found there.                                                       *
  *                                                                           *
  * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
- *
+ *                                                                           *
  *****************************************************************************/
 
 
@@ -178,7 +178,7 @@ private:
      * ITR limit that the user can specify upon initializing the driver.
      *
      * \param qid Index of the queue for that the corresponding MSI-X shall be
-     *  enabled.
+     *            enabled.
      */
     void enable_rx_interrupt(uint16_t qid);
 
