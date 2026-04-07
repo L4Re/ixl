@@ -1,6 +1,6 @@
 /*****************************************************************************
  *                                                                           *
- *          igc.cc - Implementation for driving igc-style NICs      *
+ *          igc.cc - Implementation for driving igc-style NICs               *
  *                                                                           *
  * Copyright (C) 2025 Richter Paul <paul.richter@spreewalddreieck.de>        *
  *                                                                           *
@@ -14,16 +14,15 @@
  * can be found there.                                                       *
  *                                                                           *
  * https://github.com/hockeyfriend/Generic-aspects-of-porting-a-Linux-Ethernet-driver-to-the-L4Re-microkernel *
- *
+ *                                                                           *
  *****************************************************************************/
 
-
+#include <stdio.h>
 
 #include <l4/re/env>
 #include <l4/re/error_helper>
 
 #include "driver/igc/igc.h"
-#include <stdio.h>
 
 using namespace Ixl;
 
@@ -34,7 +33,9 @@ using namespace Ixl;
  ****************************************************************************/
 
  /***                           Constructor                               ***/
-Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
+Igc_device::Igc_device(L4vbus::Pci_dev&& dev,
+                       struct Dev_cfg &cfg,
+                       uint32_t itr_rate) {
     l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
     if (cfg.num_rx_queues != 1) {
@@ -58,9 +59,11 @@ Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_
 
     if (cfg.irq_timeout_ms == 0) {
         interrupts.mode = interrupt_mode::Disable;
-    } else if (cfg.irq_timeout_ms == -1) {
+    } 
+    else if (cfg.irq_timeout_ms == -1) {
         interrupts.mode = interrupt_mode::Notify;
-    } else {
+    } 
+    else {
         interrupts.mode = interrupt_mode::Wait;
     }
 
@@ -94,9 +97,6 @@ Igc_device::Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_
 
 Igc_device* Igc_device::igc_init(L4vbus::Pci_dev&& pci_dev,
                                  struct Dev_cfg &cfg) {
-
-    ixl_info("Entering...");
-
     // Create a new IGC device. itr_rate set to 0x028 yields max 97600 INT/s.
     // TODO create define for 0x028.. TODO: Check whether these IRQ settings are
     // meaningful for Igc.
@@ -376,22 +376,22 @@ void Igc_device::init_tx(void) {
 /*                          Getter                                            */
 
 /*
- * Get the link speed in Mbps, or 0 if link is down
+ * \return  get the link speed in Mbps, or 0 if link is down
  */
 uint32_t Igc_device::get_link_speed(void) {
 
     uint32_t status = get_reg32(baddr[0], IGC_STATUS);
 
-    if(!(status & IGC_STATUS_LU)) {
+    if (!(status & IGC_STATUS_LU)) {
         ixl_info("Can not get link speed, device not up!");
         return 0;
     }
     
     if (status & IGC_STATUS_SPEED_2500)
         return 2500;
-    if(status & IGC_STATUS_SPEED_1000)
+    if (status & IGC_STATUS_SPEED_1000)
         return 1000;
-    if(status & IGC_STATUS_SPEED_100)
+    if (status & IGC_STATUS_SPEED_100)
         return 100;
          
     return 0;
@@ -410,7 +410,7 @@ uint32_t Igc_device::get_link_duplex(void) {
 		duplex = HALF_DUPLEX;
 	}
 
-	return (uint32_t) duplex; //TODO ideally rename type in device.h to return the enum, need to put enums into shared device.h for example tho
+	return (uint32_t) duplex;
 }
 
 struct mac_address Igc_device::get_mac_addr(void) {
@@ -431,7 +431,7 @@ struct mac_address Igc_device::get_mac_addr(void) {
     for (i = 0; i < IGC_RAH_MAC_ADDR_LEN; i++) {
         macAddrStruct.addr[IGC_RAL_MAC_ADDR_LEN + i] = (uint8_t)(rar_high >> (i * 8));
     }
-    // Return.
+
     return macAddrStruct;
 }
 
@@ -443,7 +443,8 @@ void Igc_device::set_promisc(bool enabled) {
     if (enabled) {
         ixl_info("enabling promisc mode");
         set_flags32(baddr[0], IGC_RCTL, IGC_RCTL_MPE | IGC_RCTL_UPE);
-    } else {
+    } 
+    else {
         ixl_info("disabling promisc mode");
         clear_flags32(baddr[0], IGC_RCTL, IGC_RCTL_MPE | IGC_RCTL_UPE);
     }
@@ -458,7 +459,7 @@ void Igc_device::set_mac_addr(struct mac_address mac) {
 /*                          Enabler/Disabler                                  */
 
 /*
- * disable all interrupts
+ * Disables all interrupts.
  */
 void Igc_device::disable_interrupts(void) {
     ixl_debug("Masking off all IRQs for Igc device");
@@ -510,12 +511,14 @@ void Igc_device::disable_interrupts(void) {
 
     // Set the auto mask in the EIAM register according to the preferred mode of
     // operation.
-    if (interrupts.mode == interrupt_mode::Notify)
+    if (interrupts.mode == interrupt_mode::Notify) {
         // In Notify mode we prefer auto-masking the interrupts.
         set_flags32(baddr[0], IGC_EIAM, 1 << msi_vec);
-    else if (interrupts.mode == interrupt_mode::Wait)
+    } 
+    else if (interrupts.mode == interrupt_mode::Wait) {
         // In Wait mode we prefer not auto-masking the interrupts.
         clear_flags32(baddr[0], IGC_EIAM, 1 << msi_vec);
+    }
 
     // Enable the receive interrupt cause
     set_reg32(baddr[0], IGC_EIMS, 1 << msi_vec);
@@ -603,17 +606,13 @@ void Igc_device::start_tx_queue(int queue_id) {
 /*                              device functions                              */
 
 void Igc_device::wait_for_link(void) {
-
-    // TODO is the content below relevant for IGC?
-
     ixl_info("Waiting for link...");
-    int32_t max_wait = 10; // 10 seconds in us
+    int32_t max_wait = 10; // 10 seconds
     uint32_t status;
 
-    while(max_wait > 0)
-    {
+    while (max_wait > 0) {
         status = get_reg32(baddr[0], IGC_STATUS);
-        if(status & IGC_STATUS_LU)
+        if (status & IGC_STATUS_LU)
         {
             ixl_info("Link is up!");
             return;
@@ -623,7 +622,7 @@ void Igc_device::wait_for_link(void) {
         max_wait--;
     }
 
-    ixl_info("Link detection timeout...");
+    ixl_warn("Link detection timeout...");
 }
 
 uint32_t Igc_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
@@ -736,7 +735,8 @@ uint32_t Igc_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             if (int_en != interrupt->interrupt_enabled) {
                 if (interrupt->interrupt_enabled) {
                     enable_rx_interrupt(queue_id);
-                } else {
+                } 
+                else {
                     disable_rx_interrupt(queue_id);
                 }
             }
@@ -790,8 +790,8 @@ uint32_t Igc_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         volatile struct igc_tx_desc* txd = queue->descriptors + cleanup_to;
         // hardware sets this flag as soon as it's sent out, we can give back
         // all bufs in the batch back to the mempool comment from linux driver
-        // abouth this register: /* if DD is not set pending work has not been
-        // completed */
+        // abouth this register: if DD is not set pending work has not been
+        // completed
         if (txd->upper.data & IGC_TXD_STAT_DD) {
             int32_t i = clean_index;
             while (true) {
