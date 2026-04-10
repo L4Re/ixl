@@ -119,12 +119,12 @@ public:
     };
 
     /**
-     * Returns the name of the driver.
+     * \returns The name of the driver.
      */
     virtual std::string get_driver_name(void) = 0;
 
     /**
-     * Returns the maximum frame size that the device can currently handle.
+     * \returns The maximum frame size that the device can currently handle.
      */
     virtual inline uint32_t get_max_frame_size(void) = 0;
 
@@ -138,8 +138,14 @@ public:
 
     virtual void set_promisc(bool enabled) = 0;
 
+    /**
+     * \returns The current link speed in MBit/s.
+     */
     virtual uint32_t get_link_speed(void) = 0;
 
+    /**
+     * \returns The MAC address currently in use with the device.
+     */
     virtual struct mac_address get_mac_addr(void) = 0;
 
     virtual void set_mac_addr(struct mac_address mac) = 0;
@@ -159,28 +165,28 @@ public:
     }
 
     /**
-     * Returns the number of RX queues allocated by the driver.
+     * \returns The number of RX queues allocated by the driver.
      */
     uint16_t get_num_rx_queues(void) {
         return num_rx_queues;
     }
 
     /**
-     * Returns the number of descriptor entries per RX queue. This value is
-     * set once upon device initialization.
+     * \returns The number of descriptor entries per RX queue. This value is
+     *          set once upon device initialization.
      */
     virtual uint32_t get_rx_queue_depth(void) = 0;
 
     /**
-     * Returns the number of TX queues allocated by the driver.
+     * \returns The number of TX queues allocated by the driver.
      */
     uint16_t get_num_tx_queues(void) {
         return num_tx_queues;
     }
 
     /**
-     * Returns the number of descriptor entries per TX queue. This value is
-     * set once upon device initialization.
+     * \returns The number of descriptor entries per TX queue. This value is
+     *          set once upon device initialization.
      */
     virtual uint32_t get_tx_queue_depth(void) = 0;
 
