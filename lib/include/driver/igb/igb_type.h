@@ -17,6 +17,7 @@
  */
 #define IGB_DEV_ID_82576   0x10C9
 #define IGB_DEV_ID_I350    0x1521
+#define IGB_DEV_ID_I210    0x1533
 
 /*
  * Descriptor structures
