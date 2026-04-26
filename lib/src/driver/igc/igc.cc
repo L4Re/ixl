@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <l4/re/env>
 #include <l4/re/error_helper>
@@ -255,7 +256,7 @@ void Igc_device::init_rx(void) {
         set_reg32(baddr[0], IGC_RDH, 0);
         set_reg32(baddr[0], IGC_RDT, 0);
         ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("rx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
     }
 
     // Enable checksum offloading for CRC and received UCP/TCP packets
@@ -282,7 +283,7 @@ void Igc_device::init_tx(void) {
         set_reg32(baddr[0], IGC_TDBAH, (uint32_t) (mem.phy >> 32));
         set_reg32(baddr[0], IGC_TDLEN, ring_size_bytes);
         ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("tx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
 
         // Init TX queue to empty
         set_reg32(baddr[0], IGC_TDH, 0);
