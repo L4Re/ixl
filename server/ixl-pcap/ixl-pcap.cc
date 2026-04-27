@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <inttypes.h>
 
 #include <l4/re/error_helper>
 #include <l4/re/env>
@@ -46,7 +47,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (n_packets >= 0) {
-        printf("Capturing %ld packets...\n", n_packets);
+        printf("Capturing %" PRId64 " packets...\n", n_packets);
     } else {
         printf("Capturing packets...\n");
     }

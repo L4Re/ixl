@@ -9,6 +9,7 @@
 
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <l4/re/error_helper>
 #include <l4/re/env>
@@ -117,7 +118,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (n_packets >= 0) {
-        printf("Sending %ld packets...\n", n_packets);
+        printf("Sending %" PRId64 " packets...\n", n_packets);
     } else {
         printf("Sending packets...\n");
     }

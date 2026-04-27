@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <l4/re/error_helper>
 
@@ -326,7 +327,7 @@ void Ixgbe_device::init_rx(void) {
         set_reg32(baddr[0], IXGBE_RDBAH(i), (uint32_t) (mem.phy >> 32));
         set_reg32(baddr[0], IXGBE_RDLEN(i), ring_size_bytes);
         ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("rx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
         // set ring to empty at start
         set_reg32(baddr[0], IXGBE_RDH(i), 0);
         set_reg32(baddr[0], IXGBE_RDT(i), 0);
@@ -378,7 +379,7 @@ void Ixgbe_device::init_tx(void) {
         set_reg32(baddr[0], IXGBE_TDBAH(i), (uint32_t) (mem.phy >> 32));
         set_reg32(baddr[0], IXGBE_TDLEN(i), ring_size_bytes);
         ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("tx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
 
         // descriptor writeback magic values, important to get good performance and low PCIe overhead
         // see 7.2.3.4.1 and 7.2.3.5 for an explanation of these values and how to find good ones

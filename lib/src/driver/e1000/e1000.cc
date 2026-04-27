@@ -6,6 +6,7 @@
  *                                                                           *
  *****************************************************************************/
 
+#include <inttypes.h>
 
 #include <l4/re/env>
 #include <l4/re/error_helper>
@@ -241,7 +242,7 @@ void E1000_device::init_rx(void) {
         set_reg32(baddr[0], E1000_RDH, 0);
         set_reg32(baddr[0], E1000_RDT, queue->num_entries - 1);
         ixl_debug("rx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("rx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("rx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
     }
 
     // Enable checksum offloading for received UCP/TCP packets
@@ -266,7 +267,7 @@ void E1000_device::init_tx(void) {
         set_reg32(baddr[0], E1000_TDBAH, (uint32_t) (mem.phy >> 32));
         set_reg32(baddr[0], E1000_TDLEN, ring_size_bytes);
         ixl_debug("tx ring %d phy addr:  0x%012llX", i, mem.phy);
-        ixl_debug("tx ring %d virt addr: 0x%012lX", i, (uintptr_t) mem.virt);
+        ixl_debug("tx ring %d virt addr: 0x%012" PRIXPTR, i, (uintptr_t) mem.virt);
 
         // Init TX queue to empty
         set_reg32(baddr[0], E1000_TDH, 0);
