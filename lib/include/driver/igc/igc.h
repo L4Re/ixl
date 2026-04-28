@@ -127,7 +127,7 @@ public:
      *
      * \return The initialized Igc device.
      */
-    static Igc_device* igc_init(L4vbus::Pci_dev&& pci_dev, struct Dev_cfg &cfg);
+    static Igc_device* igc_init(L4vbus::Pci_dev &&pci_dev, struct Dev_cfg &cfg);
 
 private:
     // allocated for each rx queue, keeps state for the receive function
@@ -171,7 +171,7 @@ private:
     };
 
     /***                           Constructor                              ***/
-    Igc_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
+    Igc_device(L4vbus::Pci_dev &&dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
         l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
         if (cfg.num_rx_queues != 1) {

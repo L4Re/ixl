@@ -37,7 +37,7 @@ using namespace Ixl;
 
 /*                              Init functions                              */
 
-Igc_device* Igc_device::igc_init(L4vbus::Pci_dev&& pci_dev,
+Igc_device* Igc_device::igc_init(L4vbus::Pci_dev &&pci_dev,
                                  struct Dev_cfg &cfg) {
     // Create a new IGC device. itr_rate set to 0x028 yields max 97600 INT/s.
     // TODO create define for 0x028..

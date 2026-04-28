@@ -126,7 +126,7 @@ public:
      *
      * \return The initialized Igb device.
      */
-    static Igb_device* igb_init(L4vbus::Pci_dev&& pci_dev, struct Dev_cfg &cfg);
+    static Igb_device* igb_init(L4vbus::Pci_dev &&pci_dev, struct Dev_cfg &cfg);
 
 private:
     // allocated for each rx queue, keeps state for the receive function
@@ -170,7 +170,7 @@ private:
     };
 
     /***                           Constructor                            ***/
-    Igb_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
+    Igb_device(L4vbus::Pci_dev &&dev, struct Dev_cfg &cfg, uint32_t itr_rate) {
         l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
         // FIXME: Implement multi-queue support for this device type

@@ -60,7 +60,7 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
     return ~((uint16_t) cs);
 }
 
-static struct Ixl::Mempool* init_mempool(Ixl_device& dev) {
+static struct Ixl::Mempool* init_mempool(Ixl_device &dev) {
     const int NUM_BUFS = 1024;
     struct Ixl::Mempool* mempool = new Ixl::Mempool(dev, NUM_BUFS, 0,
                                                     1ULL << 28);

@@ -764,7 +764,7 @@ void Igb_device::ack_recv_irq(uint16_t qid) {
     set_reg32(baddr[0], IGB_EIMS, 1 << interrupts.queues[qid].msi_vec);
 }
 
-Igb_device* Igb_device::igb_init(L4vbus::Pci_dev&& pci_dev,
+Igb_device* Igb_device::igb_init(L4vbus::Pci_dev &&pci_dev,
                                  struct Dev_cfg &cfg) {
 
     // Create a new Igb device. itr_rate set to 0x028 yields max 97600 INT/s.

@@ -55,7 +55,7 @@ struct dma_memory {
  *
  * \returns A container describing the allocated DMA-enabled memory.
  */
-struct dma_memory memory_allocate_dma(Ixl_device& dev, size_t size);
+struct dma_memory memory_allocate_dma(Ixl_device &dev, size_t size);
 
 /**
  * Structure that wraps a single packet handed over or received from the NIC.

@@ -482,7 +482,7 @@ void Ixgbe_device::reset_and_init(void) {
 }
 
 /* Initializes and returns the IXGBE device.                                */
-Ixgbe_device* Ixgbe_device::ixgbe_init(L4vbus::Pci_dev&& pci_dev,
+Ixgbe_device* Ixgbe_device::ixgbe_init(L4vbus::Pci_dev &&pci_dev,
                                        struct Dev_cfg &cfg) {
     // TODO: Move this check to constructor?
     if (cfg.num_rx_queues > MAX_QUEUES) {

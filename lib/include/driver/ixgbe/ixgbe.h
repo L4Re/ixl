@@ -106,7 +106,7 @@ public:
      *
      * \return The initialized IXGBE device.
      */
-    static Ixgbe_device* ixgbe_init(L4vbus::Pci_dev&& pci_dev,
+    static Ixgbe_device* ixgbe_init(L4vbus::Pci_dev &&pci_dev,
                                     struct Dev_cfg &cfg);
 
 private:
@@ -152,7 +152,7 @@ private:
 
 
     /***                           Constructor                            ***/
-    Ixgbe_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate){
+    Ixgbe_device(L4vbus::Pci_dev &&dev, struct Dev_cfg &cfg, uint32_t itr_rate){
         l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
         num_rx_queues = cfg.num_rx_queues;

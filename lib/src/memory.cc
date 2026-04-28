@@ -22,7 +22,7 @@
 using namespace Ixl;
 
 // allocate memory suitable for DMA access in huge pages
-struct dma_memory Ixl::memory_allocate_dma(Ixl_device& dev, size_t size) {
+struct dma_memory Ixl::memory_allocate_dma(Ixl_device &dev, size_t size) {
     // final DMA memory struct
     struct dma_memory ret;
 

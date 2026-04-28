@@ -15,7 +15,7 @@
 
 namespace Ixl {
 
-void enable_dma(L4vbus::Pci_dev& dev);
+void enable_dma(L4vbus::Pci_dev &dev);
 
 /**
  * Maps the I/O memory of the base address register with index idx into the
@@ -26,7 +26,7 @@ void enable_dma(L4vbus::Pci_dev& dev);
  *
  * \return The virtual address at which the contents of BAR 0 can be accessed.
  */
-uint8_t* pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx);
+uint8_t* pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx);
 
 /**
  * Computes the size of the I/O memory that can be accessed by mapping
@@ -34,14 +34,14 @@ uint8_t* pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx);
  *
  * See also https://wiki.osdev.org/PCI#Base_Address_Registers
  */
-l4_uint64_t get_bar_size(L4vbus::Pci_dev& dev, unsigned int idx);
+l4_uint64_t get_bar_size(L4vbus::Pci_dev &dev, unsigned int idx);
 
 /**
  * Gets the physical address of BAR<idx> of the PCI device dev.
  *
  * See also: https://wiki.osdev.org/PCI#Base_Address_Registers
  */
-l4_uint64_t get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx);
+l4_uint64_t get_bar_addr(L4vbus::Pci_dev &dev, unsigned int idx);
 
 /**
  * Returns true if the device has support for MSI-X.

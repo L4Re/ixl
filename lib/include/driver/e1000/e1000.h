@@ -120,7 +120,7 @@ public:
      *
      * \return The initialized E1000 device.
      */
-    static E1000_device* e1000_init(L4vbus::Pci_dev&& pci_dev,
+    static E1000_device* e1000_init(L4vbus::Pci_dev &&pci_dev,
                                     struct Dev_cfg &cfg);
 
 private:
@@ -166,7 +166,7 @@ private:
 
 
     /***                           Constructor                            ***/
-    E1000_device(L4vbus::Pci_dev&& dev, struct Dev_cfg &cfg, uint32_t itr_rate){
+    E1000_device(L4vbus::Pci_dev &&dev, struct Dev_cfg &cfg, uint32_t itr_rate){
         l4_timeout_s l4tos;     // L4 timeout object with us granularity
 
         // Integrity check: The E1000 series does not have multi-queue support

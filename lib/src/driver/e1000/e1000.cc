@@ -712,7 +712,7 @@ void E1000_device::ack_recv_irq(uint16_t qid) {
     enable_rx_interrupt();
 }
 
-E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev&& pci_dev,
+E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev &&pci_dev,
                                        struct Dev_cfg &cfg) {
 
     // Create a new E1000 device. itr_rate set to 0x028 yields max 97600 INT/s.

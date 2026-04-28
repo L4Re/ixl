@@ -95,7 +95,7 @@ static bool check_pci_cap(L4vbus::Pci_dev &dev, uint8_t cap_id, uint32_t *addr){
 
 
 /* Compute the size of the I/O memory accessible through BAR<idx>           */
-l4_uint64_t Ixl::get_bar_size(L4vbus::Pci_dev& dev, unsigned int idx) {
+l4_uint64_t Ixl::get_bar_size(L4vbus::Pci_dev &dev, unsigned int idx) {
     // TODO: According to OSdev wiki, one should also disable the I/O and
     //       memory decode bytes in the command register before executing
     //       this operation...
@@ -149,7 +149,7 @@ l4_uint64_t Ixl::get_bar_size(L4vbus::Pci_dev& dev, unsigned int idx) {
 }
 
 /* Get the physical address of BAR<idx>                                     */
-l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx) {
+l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev &dev, unsigned int idx) {
     l4_uint32_t lsb;
     l4_uint32_t msb;
 
@@ -172,7 +172,7 @@ l4_uint64_t Ixl::get_bar_addr(L4vbus::Pci_dev& dev, unsigned int idx) {
     return (((l4_uint64_t) msb) << 32 | lsb) & 0xfffffffffffff000UL;
 }
 
-void Ixl::enable_dma(L4vbus::Pci_dev& dev) {
+void Ixl::enable_dma(L4vbus::Pci_dev &dev) {
     l4_uint32_t cmd_reg = 0;                  // Value of PCI command register
 
     // write to the command register (offset 4) in the PCIe config space
@@ -183,7 +183,7 @@ void Ixl::enable_dma(L4vbus::Pci_dev& dev) {
 }
 
 /* Map a BAR to the address space of the executing task.                    */
-uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev& dev, unsigned int idx) {
+uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx) {
     l4_addr_t   iomem_addr;       // Address for mapping the I/O memory of BAR0
     l4_uint64_t iomem_size;       // Size of memory accessible through BAR0
     l4_uint64_t bar_addr;         // Physical address contained in BAR0
