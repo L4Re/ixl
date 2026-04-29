@@ -19,10 +19,10 @@ struct device_stats {
 
     device_stats(Ixl_device *dev);
 
-    static void print_stats(struct device_stats* stats);
+    static void print_stats(struct device_stats *stats);
 
-    static void print_stats_diff(struct device_stats* stats_new,
-                                 struct device_stats* stats_old,
+    static void print_stats_diff(struct device_stats *stats_new,
+                                 struct device_stats *stats_old,
                                  uint64_t nanos_passed);
 
     static uint64_t monotonic_time();

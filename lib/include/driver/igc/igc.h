@@ -65,10 +65,10 @@ public:
         return 1514;
     }
 
-    uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+    uint32_t rx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                       uint32_t num_bufs);
 
-    uint32_t tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+    uint32_t tx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                       uint32_t num_bufs);
 
     void read_stats(struct device_stats *stats);
@@ -127,7 +127,7 @@ public:
      *
      * \return The initialized Igc device.
      */
-    static Igc_device* igc_init(L4vbus::Pci_dev &&pci_dev, struct Dev_cfg &cfg);
+    static Igc_device *igc_init(L4vbus::Pci_dev &&pci_dev, struct Dev_cfg &cfg);
 
 private:
     // allocated for each rx queue, keeps state for the receive function
@@ -136,10 +136,10 @@ private:
         struct dma_memory descr_mem;
 
         // Array of descriptors backed by descr_mem
-        volatile struct igc_rx_desc* descriptors;
+        volatile struct igc_rx_desc *descriptors;
 
         // DMA'able memory for storing incoming packets
-        Mempool* mempool;
+        Mempool *mempool;
 
         // No. of descriptors in the queue
         uint16_t num_entries;
@@ -149,7 +149,7 @@ private:
         // driver. We use this flag to skip IRQ receive operations if necessary.
         bool rx_pending = false;
         // virtual addresses to map descriptors back to their mbuf for freeing
-        void* virtual_addresses[];
+        void *virtual_addresses[];
     };
 
     // allocated for each tx queue, keeps state for the transmit function
@@ -158,7 +158,7 @@ private:
         struct dma_memory descr_mem;
 
         // Array of descriptors backed by descr_mem
-        volatile struct igc_tx_desc* descriptors;
+        volatile struct igc_tx_desc *descriptors;
 
         // No. of descriptors in the queue
         uint16_t num_entries;
@@ -167,7 +167,7 @@ private:
         // position to insert packets for transmission
         uint16_t tx_index;
         // virtual addresses to map descriptors back to their mbuf for freeing
-        void* virtual_addresses[];
+        void *virtual_addresses[];
     };
 
     /***                           Constructor                              ***/
@@ -223,8 +223,8 @@ private:
             init_msix();
         }
 
-        rx_queues = calloc(num_rx_queues, sizeof(struct igc_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
-        tx_queues = calloc(num_tx_queues, sizeof(struct igc_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
+        rx_queues = calloc(num_rx_queues, sizeof(struct igc_rx_queue) + sizeof(void *) * MAX_RX_QUEUE_ENTRIES);
+        tx_queues = calloc(num_tx_queues, sizeof(struct igc_tx_queue) + sizeof(void *) * MAX_TX_QUEUE_ENTRIES);
     }
 
     /***                            Functions                               ***/

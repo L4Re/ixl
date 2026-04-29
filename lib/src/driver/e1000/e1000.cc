@@ -75,7 +75,7 @@ void E1000_device::setup_interrupts(void) {
         return;
     }
 
-    interrupts.queues = (struct interrupt_queue*) malloc(num_rx_queues * sizeof(struct interrupt_queue));
+    interrupts.queues = (struct interrupt_queue *) malloc(num_rx_queues * sizeof(struct interrupt_queue));
 
     // Determine type of interrupt available at the device (e1000 does not
     // support MSI-X). Note also that there is only a single receive queue
@@ -183,7 +183,7 @@ void E1000_device::init_rx(void) {
     for (uint16_t i = 0; i < num_rx_queues; i++) {
         ixl_debug("initializing rx queue %d", i);
 
-        struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + i;
+        struct e1000_rx_queue *queue = ((struct e1000_rx_queue *) rx_queues) + i;
 
         uint32_t ring_size_bytes = NUM_RX_QUEUE_ENTRIES * sizeof(struct e1000_rx_desc);
         struct dma_memory mem = memory_allocate_dma(*this, ring_size_bytes);
@@ -199,7 +199,7 @@ void E1000_device::init_rx(void) {
         // private data for the driver, 0-initialized
         queue->num_entries = NUM_RX_QUEUE_ENTRIES;
         queue->rx_index    = 0;
-        queue->descriptors = (struct e1000_rx_desc*) mem.virt;
+        queue->descriptors = (struct e1000_rx_desc *) mem.virt;
 
         // Allocate packet buffers and set backing memory for descriptors
         // 2048 as pktbuf size is strictly speaking incorrect:
@@ -220,8 +220,8 @@ void E1000_device::init_rx(void) {
             ixl_error("number of queue entries must be a power of 2");
         }
         for (int j = 0; j < queue->num_entries; j++) {
-            volatile struct e1000_rx_desc* rxd = queue->descriptors + j;
-            struct pkt_buf* buf = queue->mempool->pkt_buf_alloc();
+            volatile struct e1000_rx_desc *rxd = queue->descriptors + j;
+            struct pkt_buf *buf = queue->mempool->pkt_buf_alloc();
             if (!buf) {
                     ixl_error("failed to allocate rx buffer");
             }
@@ -254,7 +254,7 @@ void E1000_device::init_rx(void) {
 void E1000_device::init_tx(void) {
     // Actually, E1000 only has a single qp, but we leave the loop anyways
     for (uint16_t i = 0; i < num_tx_queues; i++) {
-        struct e1000_tx_queue* queue = ((struct e1000_tx_queue*) tx_queues) + i;
+        struct e1000_tx_queue *queue = ((struct e1000_tx_queue *) tx_queues) + i;
         ixl_debug("initializing tx queue %d", i);
 
         // setup descriptor ring, see section 7.1.9
@@ -279,7 +279,7 @@ void E1000_device::init_tx(void) {
 
         // private data for the driver, 0-initialized
         queue->num_entries = NUM_TX_QUEUE_ENTRIES;
-        queue->descriptors = (struct e1000_tx_desc*) mem.virt;
+        queue->descriptors = (struct e1000_tx_desc *) mem.virt;
     }
 }
 
@@ -373,14 +373,14 @@ void E1000_device::reset_and_init(void) {
     wait_for_link();
 }
 
-uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                                 uint32_t num_bufs) {
-    struct interrupt_queue* interrupt = NULL;
+    struct interrupt_queue *interrupt = NULL;
     bool interrupt_wait = interrupts.mode == interrupt_mode::Wait;
 
     // For non-debug builds insert an additional bounds check for the queue_id
     l4_assert(queue_id == 0);
-    struct e1000_rx_queue* queue = ((struct e1000_rx_queue*) rx_queues) + queue_id;
+    struct e1000_rx_queue *queue = ((struct e1000_rx_queue *) rx_queues) + queue_id;
 
     if (interrupt_wait) {
         interrupt = &interrupts.queues[queue_id];
@@ -402,7 +402,7 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 
     for (buf_index = 0; buf_index < num_bufs; buf_index++) {
         // rx descriptors are explained in section 3.2.3
-        volatile struct e1000_rx_desc* desc_ptr = queue->descriptors + rx_index;
+        volatile struct e1000_rx_desc *desc_ptr = queue->descriptors + rx_index;
         uint8_t status = desc_ptr->status;
         if (status & E1000_RXD_STAT_DD) {
             if (!(status & E1000_RXD_STAT_EOP)) {
@@ -413,13 +413,13 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             // got a packet, read and copy the whole descriptor
             struct e1000_rx_desc desc;
             memcpy(&desc, (const void *) desc_ptr, sizeof(desc));
-            struct pkt_buf* buf = (struct pkt_buf*) queue->virtual_addresses[rx_index];
+            struct pkt_buf *buf = (struct pkt_buf *) queue->virtual_addresses[rx_index];
             buf->size = desc.length;
             // this would be the place to implement RX offloading by translating
             // the device-specific flags to an independent representation in
             // the buf (similiar to how DPDK works)
             // need a new mbuf for the descriptor
-            struct pkt_buf* new_buf = queue->mempool->pkt_buf_alloc();
+            struct pkt_buf *new_buf = queue->mempool->pkt_buf_alloc();
             while (! new_buf) {
                 // At this point, we just have to trust in this problem not to
                 // be caused by a real packet buffer leak or bug (as immediately
@@ -499,9 +499,9 @@ uint32_t E1000_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     return buf_index;
 }
 
-uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                                 uint32_t num_bufs) {
-    struct e1000_tx_queue* queue = ((struct e1000_tx_queue*) tx_queues) + queue_id;
+    struct e1000_tx_queue *queue = ((struct e1000_tx_queue *) tx_queues) + queue_id;
     // the descriptor is explained in section 3.3.2
     // we just use a struct copy & pasted from intel, but it basically has two formats (hence a union):
     // 1. the write-back format which is written by the NIC once sending it is finished this is used in step 1
@@ -530,12 +530,12 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         if (cleanup_to >= queue->num_entries) {
             cleanup_to -= queue->num_entries;
         }
-        volatile struct e1000_tx_desc* txd = queue->descriptors + cleanup_to;
+        volatile struct e1000_tx_desc *txd = queue->descriptors + cleanup_to;
         // hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
         if (txd->upper.data & E1000_TXD_STAT_DD) {
             int32_t i = clean_index;
             while (true) {
-                struct pkt_buf* buf = (struct pkt_buf *) queue->virtual_addresses[i];
+                struct pkt_buf *buf = (struct pkt_buf *) queue->virtual_addresses[i];
                 pkt_buf_free(buf);
                 if (i == cleanup_to) {
                     break;
@@ -560,10 +560,10 @@ uint32_t E1000_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         if (clean_index == next_index) {
             break;
         }
-        struct pkt_buf* buf = bufs[sent];
+        struct pkt_buf *buf = bufs[sent];
         // remember virtual address to clean it up later
-        queue->virtual_addresses[queue->tx_index] = (void*) buf;
-        volatile struct e1000_tx_desc* txd = queue->descriptors + queue->tx_index;
+        queue->virtual_addresses[queue->tx_index] = (void *) buf;
+        volatile struct e1000_tx_desc *txd = queue->descriptors + queue->tx_index;
         queue->tx_index = next_index;
         // NIC reads from here
         txd->buffer_addr  = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
@@ -712,7 +712,7 @@ void E1000_device::ack_recv_irq(uint16_t qid) {
     enable_rx_interrupt();
 }
 
-E1000_device* E1000_device::e1000_init(L4vbus::Pci_dev &&pci_dev,
+E1000_device *E1000_device::e1000_init(L4vbus::Pci_dev &&pci_dev,
                                        struct Dev_cfg &cfg) {
 
     // Create a new E1000 device. itr_rate set to 0x028 yields max 97600 INT/s.

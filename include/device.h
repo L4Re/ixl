@@ -51,8 +51,8 @@ struct __attribute__((__packed__)) mac_address {
  *
  */
 #define container_of(ptr, type, member) ({\
-    const typeof(((type*)0)->member)* __mptr = (ptr);\
-    (type*)((char*)__mptr - offsetof(type, member));\
+    const typeof(((type *)0)->member)* __mptr = (ptr);\
+    (type *)((char *)__mptr - offsetof(type, member));\
 })
 
 // advance index with wrap-around
@@ -128,10 +128,10 @@ public:
      */
     virtual inline uint32_t get_max_frame_size(void) = 0;
 
-    virtual uint32_t rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+    virtual uint32_t rx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                               uint32_t num_bufs) = 0;
 
-    virtual uint32_t tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+    virtual uint32_t tx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                               uint32_t num_bufs) = 0;
 
     virtual void read_stats(struct device_stats *stats) = 0;
@@ -151,7 +151,7 @@ public:
     virtual void set_mac_addr(struct mac_address mac) = 0;
 
     // calls tx_batch until all packets are queued with busy waiting
-    void tx_batch_busy_wait(uint16_t queue_id, struct pkt_buf* bufs[],
+    void tx_batch_busy_wait(uint16_t queue_id, struct pkt_buf *bufs[],
                             uint32_t num_bufs) {
         uint32_t num_sent = 0;
         while ((num_sent += tx_batch(queue_id, bufs + num_sent,
@@ -264,7 +264,7 @@ public:
      *                 devices are present on the vbus)
      * \param cfg      Initial device configuration, see Dev_cfg for details.
      */
-    static Ixl_device* ixl_init(L4::Cap<L4vbus::Vbus> vbus,
+    static Ixl_device *ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                                 uint32_t dev_idx, struct Dev_cfg &cfg);
 
 protected:
@@ -293,10 +293,10 @@ protected:
     // corresponds to the number of the BAR (i.e., baddr[0] is the start
     // address of the memory mapping for BAR0. BARs that are not mapped yet
     // are represented by NULL (it is also possible that some BARs are absent).
-    uint8_t* baddr[6];
+    uint8_t *baddr[6];
 
-    void*    rx_queues;
-    void*    tx_queues;
+    void *rx_queues;
+    void *tx_queues;
 
     uint16_t num_rx_queues;
     uint16_t num_tx_queues;

@@ -48,11 +48,11 @@ static const uint8_t pkt_data[] = {
 };
 
 // calculate a IP/TCP/UDP checksum
-static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
+static uint16_t calc_ip_checksum(uint8_t *data, uint32_t len) {
     if (len % 1) ixl_error("odd-sized checksums NYI"); // we don't need that
     uint32_t cs = 0;
     for (uint32_t i = 0; i < len / 2; i++) {
-        cs += ((uint16_t*)data)[i];
+        cs += ((uint16_t *)data)[i];
         if (cs > 0xFFFF) {
             cs = (cs & 0xFFFF) + 1; // 16 bit one's complement
         }
@@ -60,19 +60,19 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
     return ~((uint16_t) cs);
 }
 
-static struct Ixl::Mempool* init_mempool(Ixl_device &dev) {
+static struct Ixl::Mempool *init_mempool(Ixl_device &dev) {
     const int NUM_BUFS = 1024;
-    struct Ixl::Mempool* mempool = new Ixl::Mempool(dev, NUM_BUFS, 0,
+    struct Ixl::Mempool *mempool = new Ixl::Mempool(dev, NUM_BUFS, 0,
                                                     1ULL << 28);
 
     // pre-fill all our packet buffers with some templates that can be modified later
     // we have to do it like this because sending is async in the hardware; we cannot re-use a buffer immediately
-    struct Ixl::pkt_buf* bufs[NUM_BUFS];
+    struct Ixl::pkt_buf *bufs[NUM_BUFS];
     for (int buf_id = 0; buf_id < NUM_BUFS; buf_id++) {
-        struct Ixl::pkt_buf* buf = mempool->pkt_buf_alloc();
+        struct Ixl::pkt_buf *buf = mempool->pkt_buf_alloc();
         buf->size = PKT_SIZE;
         memcpy(buf->data, pkt_data, sizeof(pkt_data));
-        *(uint16_t*) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
+        *(uint16_t *) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
         bufs[buf_id] = buf;
     }
     // return them all to the mempool, all future allocations will return bufs with the data set above
@@ -83,7 +83,7 @@ static struct Ixl::Mempool* init_mempool(Ixl_device &dev) {
     return mempool;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2 || argc > 3) {
         printf("Usage: %s <vbus dev idx> [n packets]\n", argv[0]);
         return 1;
@@ -99,8 +99,8 @@ int main(int argc, char* argv[]) {
     cfg.irq_timeout_ms = 0;
 
     // Create an Ixl device. This also initializes the NIC.
-    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
-    struct Ixl::Mempool* mempool = init_mempool(*dev);
+    Ixl_device *dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
+    struct Ixl::Mempool *mempool = init_mempool(*dev);
 
     uint64_t last_stats_printed = device_stats::monotonic_time();
     uint64_t counter = 0;
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
     uint32_t seq_num = 0;
 
     // array of bufs sent out in a batch
-    struct Ixl::pkt_buf* bufs[BATCH_SIZE];
+    struct Ixl::pkt_buf *bufs[BATCH_SIZE];
 
     // Default is infinite sending
     int64_t n_packets = -1;
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
         mempool->pkt_buf_alloc_batch(bufs, BATCH_SIZE);
         for (uint32_t i = 0; i < BATCH_SIZE; i++) {
             // packets can be modified here, make sure to update the checksum when changing the IP header
-            *(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;
+            *(uint32_t *)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;
         }
         // the packets could be modified here to generate multiple flows
         dev->tx_batch_busy_wait(0, bufs, BATCH_SIZE);

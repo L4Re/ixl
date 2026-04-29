@@ -23,7 +23,7 @@ using Ixl::Ixl_device;
 
 const int BATCH_SIZE = 32;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2 || argc > 3) {
         printf("Usage: %s <vbus dev idx> [n packets]\n", argv[0]);
         return 1;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     cfg.irq_timeout_ms = 0;
 
     // Setup the driver (also resets and initializes the NIC)
-    Ixl_device* dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
+    Ixl_device *dev = Ixl_device::ixl_init(vbus, atoi(argv[1]), cfg);
 
     int64_t n_packets = -1;
     if (argc == 3) {
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
         printf("Capturing packets...\n");
     }
 
-    struct Ixl::pkt_buf* bufs[BATCH_SIZE];
+    struct Ixl::pkt_buf *bufs[BATCH_SIZE];
     while (n_packets != 0) {
         uint32_t num_rx = dev->rx_batch(0, bufs, BATCH_SIZE);
         struct timeval tv;

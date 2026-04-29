@@ -60,7 +60,7 @@ struct interrupts {
     L4::Cap<L4::Icu> vicu;
 
     uint32_t itr_rate;               // The Interrupt Throttling Rate
-    struct interrupt_queue* queues;  // Interrupt settings per queue
+    struct interrupt_queue *queues;  // Interrupt settings per queue
     uint8_t interrupt_type;          // MSI or MSIX
 
     // interrupt timeout in L4-specific representation
@@ -78,7 +78,7 @@ struct interrupts {
  *
  * \return Whether to disable NIC interrupts or not.
  */
-void check_interrupt(struct interrupt_queue* interrupt, uint64_t diff, uint32_t buf_index, uint32_t buf_size);
+void check_interrupt(struct interrupt_queue *interrupt, uint64_t diff, uint32_t buf_index, uint32_t buf_size);
 
 /**
  * Allocates and IRQ cap into the object provided by the client and subsequently

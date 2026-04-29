@@ -183,7 +183,7 @@ void Ixl::enable_dma(L4vbus::Pci_dev &dev) {
 }
 
 /* Map a BAR to the address space of the executing task.                    */
-uint8_t* Ixl::pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx) {
+uint8_t *Ixl::pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx) {
     l4_addr_t   iomem_addr;       // Address for mapping the I/O memory of BAR0
     l4_uint64_t iomem_size;       // Size of memory accessible through BAR0
     l4_uint64_t bar_addr;         // Physical address contained in BAR0

@@ -26,7 +26,7 @@ void enable_dma(L4vbus::Pci_dev &dev);
  *
  * \return The virtual address at which the contents of BAR 0 can be accessed.
  */
-uint8_t* pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx);
+uint8_t *pci_map_bar(L4vbus::Pci_dev &dev, unsigned int idx);
 
 /**
  * Computes the size of the I/O memory that can be accessed by mapping
@@ -143,25 +143,25 @@ L4vbus::Pci_dev pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
 // here) on x86. dpdk also defines an additional relaxed load/store for the
 // registers that only uses a volatile access, we skip that for simplicity
 
-static inline void set_reg32(uint8_t* addr, int reg, uint32_t value) {
+static inline void set_reg32(uint8_t *addr, int reg, uint32_t value) {
     __asm__ volatile ("" : : : "memory");
     Asm_access::write(value, reinterpret_cast<uint32_t *>(addr + reg));
 }
 
-static inline uint32_t get_reg32(const uint8_t* addr, int reg) {
+static inline uint32_t get_reg32(const uint8_t *addr, int reg) {
     __asm__ volatile ("" : : : "memory");
     return Asm_access::read(reinterpret_cast<const uint32_t *>(addr + reg));
 }
 
-static inline void set_flags32(uint8_t* addr, int reg, uint32_t flags) {
+static inline void set_flags32(uint8_t *addr, int reg, uint32_t flags) {
     set_reg32(addr, reg, get_reg32(addr, reg) | flags);
 }
 
-static inline void clear_flags32(uint8_t* addr, int reg, uint32_t flags) {
+static inline void clear_flags32(uint8_t *addr, int reg, uint32_t flags) {
     set_reg32(addr, reg, get_reg32(addr, reg) & ~flags);
 }
 
-static inline void wait_clear_reg32(const uint8_t* addr, int reg, uint32_t mask) {
+static inline void wait_clear_reg32(const uint8_t *addr, int reg, uint32_t mask) {
     uint32_t cur = 0;
     while (cur = get_reg32(addr, reg), (cur & mask) != 0) {
         ixl_debug("waiting for flags 0x%08X in register 0x%05X to clear, current value 0x%08X", mask, reg, cur);
@@ -169,7 +169,7 @@ static inline void wait_clear_reg32(const uint8_t* addr, int reg, uint32_t mask)
     }
 }
 
-static inline void wait_set_reg32(const uint8_t* addr, int reg, uint32_t mask) {
+static inline void wait_set_reg32(const uint8_t *addr, int reg, uint32_t mask) {
     uint32_t cur = 0;
     while (cur = get_reg32(addr, reg), (cur & mask) != mask) {
         ixl_debug("waiting for flags 0x%08X in register 0x%05X, current value 0x%08X", mask, reg, cur);

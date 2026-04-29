@@ -14,7 +14,7 @@ device_stats::device_stats(Ixl_device *dev) : device(dev) {
     device->read_stats(NULL);
 }
 
-void device_stats::print_stats(struct device_stats* stats) {
+void device_stats::print_stats(struct device_stats *stats) {
     printf("RX: %zu bytes %zu packets\n", stats->rx_bytes, stats->rx_pkts);
     printf("TX: %zu bytes %zu packets\n", stats->tx_bytes, stats->tx_pkts);
 }
@@ -30,7 +30,7 @@ static uint32_t diff_mbit(uint64_t bytes_new, uint64_t bytes_old, uint64_t pkts_
         + diff_mpps(pkts_new, pkts_old, nanos) * 20 * 8);
 }
 
-void device_stats::print_stats_diff(struct device_stats* stats_new, struct device_stats* stats_old, uint64_t nanos) {
+void device_stats::print_stats_diff(struct device_stats *stats_new, struct device_stats *stats_old, uint64_t nanos) {
     printf("RX: %d Mbit/s %.2f Mpps\n", diff_mbit(stats_new->rx_bytes,
         stats_old->rx_bytes, stats_new->rx_pkts, stats_old->rx_pkts, nanos),
         diff_mpps(stats_new->rx_pkts, stats_old->rx_pkts, nanos)

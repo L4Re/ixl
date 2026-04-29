@@ -36,7 +36,7 @@ struct dma_memory {
     L4Re::Util::Shared_cap<L4Re::Dataspace> mem_cap;
 
     /// Virtual addr at that the dataspace has been mapped in the calling task
-    void* virt;
+    void *virt;
     /// Physical address of the dataspace as seen by the device
     L4Re::Dma_space::Dma_addr phy;
 };
@@ -67,7 +67,7 @@ struct pkt_buf {
     L4Re::Dma_space::Dma_addr buf_addr_phy;
 
     // Memory pool that this packet buffer belongs to
-    struct Mempool_chunk* mempool;
+    struct Mempool_chunk *mempool;
     // Index of this packet in the mempool
     uint32_t mempool_idx;
 
@@ -101,7 +101,7 @@ struct Mempool_chunk {
     // Backing DMA memory (DMA-enabled Dataspace)
     struct dma_memory backing_mem;
 
-    void* base_addr;
+    void *base_addr;
 
     uint32_t buf_size;
     uint32_t num_entries;
@@ -126,7 +126,7 @@ struct Mempool_chunk {
      *
      * \returns The number of packets that could be allocated (<= num_bufs).
      */
-    uint32_t pkt_buf_alloc_batch(struct pkt_buf* bufs[], uint32_t num_bufs);
+    uint32_t pkt_buf_alloc_batch(struct pkt_buf *bufs[], uint32_t num_bufs);
 };
 
 /**
@@ -137,7 +137,7 @@ struct Mempool_chunk {
  *
  * \param buf The buffer to reclaim.
  */
-void pkt_buf_free(struct pkt_buf* buf);
+void pkt_buf_free(struct pkt_buf *buf);
 
 /**
  * A memory pool implementation for allocating packet buffers (i.e., data
@@ -183,7 +183,7 @@ public:
      *
      * \returns The number of packets that could be allocated (<= num_bufs).
      */
-    uint32_t pkt_buf_alloc_batch(struct pkt_buf* bufs[], uint32_t num_bufs);
+    uint32_t pkt_buf_alloc_batch(struct pkt_buf *bufs[], uint32_t num_bufs);
 
     /**
      * Allocate a single packet buffer from the mempool.
@@ -195,7 +195,7 @@ public:
      *
      * \returns The packet buffer address or NULL on error.
      */
-    struct pkt_buf* pkt_buf_alloc(void);
+    struct pkt_buf *pkt_buf_alloc(void);
 
     /**
      * Make sure that the mempool has sufficient capacity for returning
@@ -272,7 +272,7 @@ private:
      *
      * \returns A populated mempool chunk.
      */
-    struct Mempool_chunk* allocate_mempool_chunk(void);
+    struct Mempool_chunk *allocate_mempool_chunk(void);
 };
 
 } // namespace IXL

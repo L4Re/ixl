@@ -145,7 +145,7 @@ void Ixl_device::rebind_recv_irq(uint16_t qid) {
 }
 
 /* Create and initialize the driver for a certain device.                   */
-Ixl_device* Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
+Ixl_device *Ixl_device::ixl_init(L4::Cap<L4vbus::Vbus> vbus,
                                  uint32_t dev_idx, struct Dev_cfg &cfg) {
     // Read PCI configuration space to obtain initial device information.
     uint32_t vendor_id;

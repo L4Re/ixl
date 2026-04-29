@@ -47,9 +47,9 @@ static uint64_t ppms(uint64_t received_pkts, uint64_t elapsed_time_nanos) {
 }
 
 /*Check if interrupts or polling should be used                             */
-void Ixl::check_interrupt(struct interrupt_queue* interrupt, uint64_t diff,
+void Ixl::check_interrupt(struct interrupt_queue *interrupt, uint64_t diff,
                           uint32_t buf_index, uint32_t buf_size) {
-    struct interrupt_moving_avg* avg = &interrupt->moving_avg;
+    struct interrupt_moving_avg *avg = &interrupt->moving_avg;
     avg->sum -= avg->measured_rates[avg->index];
     avg->measured_rates[avg->index] = ppms(interrupt->rx_pkts, diff);
     avg->sum += avg->measured_rates[avg->index];

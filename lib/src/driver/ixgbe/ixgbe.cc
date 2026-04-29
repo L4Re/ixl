@@ -129,7 +129,7 @@ void Ixgbe_device::setup_interrupts(void) {
         return;
     }
 
-    interrupts.queues = (struct interrupt_queue*) malloc(num_rx_queues * sizeof(struct interrupt_queue));
+    interrupts.queues = (struct interrupt_queue *) malloc(num_rx_queues * sizeof(struct interrupt_queue));
 
     // Determine type of interrupt available at the device
     if (pcidev_supports_msix(pci_dev)) {
@@ -239,7 +239,7 @@ void Ixgbe_device::init_link(void) {
 
 void Ixgbe_device::start_rx_queue(int queue_id) {
     ixl_debug("starting rx queue %d", queue_id);
-    struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;
+    struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) rx_queues) + queue_id;
     // 2048 as pktbuf size is strictly speaking incorrect:
     // we need a few headers (1 cacheline), so there's only 1984 bytes left for the device
     // but the 82599 can only handle sizes in increments of 1 kb; but this is fine since our max packet size
@@ -257,8 +257,8 @@ void Ixgbe_device::start_rx_queue(int queue_id) {
         ixl_error("number of queue entries must be a power of 2");
     }
     for (int i = 0; i < queue->num_entries; i++) {
-        volatile union ixgbe_adv_rx_desc* rxd = queue->descriptors + i;
-        struct pkt_buf* buf = queue->mempool->pkt_buf_alloc();
+        volatile union ixgbe_adv_rx_desc *rxd = queue->descriptors + i;
+        struct pkt_buf *buf = queue->mempool->pkt_buf_alloc();
         if (!buf) {
             ixl_error("failed to allocate rx descriptor");
         }
@@ -278,7 +278,7 @@ void Ixgbe_device::start_rx_queue(int queue_id) {
 
 void Ixgbe_device::start_tx_queue(int queue_id) {
     ixl_debug("starting tx queue %d", queue_id);
-    struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*) tx_queues) + queue_id;
+    struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) tx_queues) + queue_id;
     if (queue->num_entries & (queue->num_entries - 1)) {
         ixl_error("number of queue entries must be a power of 2");
     }
@@ -332,7 +332,7 @@ void Ixgbe_device::init_rx(void) {
         set_reg32(baddr[0], IXGBE_RDH(i), 0);
         set_reg32(baddr[0], IXGBE_RDT(i), 0);
         // private data for the driver, 0-initialized
-        struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + i;
+        struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) rx_queues) + i;
         queue->descr_mem   = mem;
         queue->num_entries = NUM_RX_QUEUE_ENTRIES;
         queue->rx_index    = 0;
@@ -392,7 +392,7 @@ void Ixgbe_device::init_tx(void) {
         set_reg32(baddr[0], IXGBE_TXDCTL(i), txdctl);
 
         // private data for the driver, 0-initialized
-        struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*) tx_queues) + i;
+        struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) tx_queues) + i;
         queue->descr_mem   = mem;
         queue->num_entries = NUM_TX_QUEUE_ENTRIES;
         queue->descriptors = (union ixgbe_adv_tx_desc*) mem.virt;
@@ -482,7 +482,7 @@ void Ixgbe_device::reset_and_init(void) {
 }
 
 /* Initializes and returns the IXGBE device.                                */
-Ixgbe_device* Ixgbe_device::ixgbe_init(L4vbus::Pci_dev &&pci_dev,
+Ixgbe_device *Ixgbe_device::ixgbe_init(L4vbus::Pci_dev &&pci_dev,
                                        struct Dev_cfg &cfg) {
     // TODO: Move this check to constructor?
     if (cfg.num_rx_queues > MAX_QUEUES) {
@@ -584,7 +584,7 @@ void Ixgbe_device::ack_recv_irq(uint16_t qid) {
 
 // read stat counters and accumulate in stats
 // stats may be NULL to just reset the counters
-void Ixgbe_device::read_stats(struct device_stats* stats) {
+void Ixgbe_device::read_stats(struct device_stats *stats) {
     uint32_t rx_pkts = get_reg32(baddr[0], IXGBE_GPRC);
     uint32_t tx_pkts = get_reg32(baddr[0], IXGBE_GPTC);
     uint64_t rx_bytes = get_reg32(baddr[0], IXGBE_GORCL) + (((uint64_t) get_reg32(baddr[0], IXGBE_GORCH)) << 32);
@@ -601,11 +601,11 @@ void Ixgbe_device::read_stats(struct device_stats* stats) {
 // try to receive a single packet if one is available, non-blocking
 // see datasheet section 7.1.9 for an explanation of the rx ring structure
 // tl;dr: we control the tail of the queue, the hardware the head
-uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                                 uint32_t num_bufs) {
-    struct interrupt_queue* interrupt = NULL;
+    struct interrupt_queue *interrupt = NULL;
     bool interrupt_wait = interrupts.mode == interrupt_mode::Wait;
-    struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) rx_queues) + queue_id;
+    struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) rx_queues) + queue_id;
 
     if (interrupt_wait) {
         interrupt = &interrupts.queues[queue_id];
@@ -621,7 +621,7 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
     uint32_t buf_index;
     for (buf_index = 0; buf_index < num_bufs; buf_index++) {
         // rx descriptors are explained in 7.1.5
-        volatile union ixgbe_adv_rx_desc* desc_ptr = queue->descriptors + rx_index;
+        volatile union ixgbe_adv_rx_desc *desc_ptr = queue->descriptors + rx_index;
         uint32_t status = desc_ptr->wb.upper.status_error;
         if (status & IXGBE_RXDADV_STAT_DD) {
             if (!(status & IXGBE_RXDADV_STAT_EOP)) {
@@ -630,12 +630,12 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
             // got a packet, read and copy the whole descriptor
             union ixgbe_adv_rx_desc desc;
             memcpy(&desc, (const void *) desc_ptr, sizeof(desc));
-            struct pkt_buf* buf = (struct pkt_buf*) queue->virtual_addresses[rx_index];
+            struct pkt_buf *buf = (struct pkt_buf *) queue->virtual_addresses[rx_index];
             buf->size = desc.wb.upper.length;
             // this would be the place to implement RX offloading by translating the device-specific flags
             // to an independent representation in the buf (similiar to how DPDK works)
             // need a new mbuf for the descriptor
-            struct pkt_buf* new_buf = queue->mempool->pkt_buf_alloc();
+            struct pkt_buf *new_buf = queue->mempool->pkt_buf_alloc();
             if (! new_buf) {
                 // At this point, we just have to trust in this problem not to
                 // be caused by a real packet buffer leak or bug (as immediately
@@ -710,9 +710,9 @@ uint32_t Ixgbe_device::rx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
 // we control the tail, hardware the head
 // huge performance gains possible here by sending packets in batches - writing to TDT for every packet is not efficient
 // returns the number of packets transmitted, will not block when the queue is full
-uint32_t Ixgbe_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
+uint32_t Ixgbe_device::tx_batch(uint16_t queue_id, struct pkt_buf *bufs[],
                                 uint32_t num_bufs) {
-    struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*) tx_queues) + queue_id;
+    struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) tx_queues) + queue_id;
     // the descriptor is explained in section 7.2.3.2.4
     // we just use a struct copy & pasted from intel, but it basically has two formats (hence a union):
     // 1. the write-back format which is written by the NIC once sending it is finished this is used in step 1
@@ -738,13 +738,13 @@ uint32_t Ixgbe_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         if (cleanup_to >= queue->num_entries) {
             cleanup_to -= queue->num_entries;
         }
-        volatile union ixgbe_adv_tx_desc* txd = queue->descriptors + cleanup_to;
+        volatile union ixgbe_adv_tx_desc *txd = queue->descriptors + cleanup_to;
         uint32_t status = txd->wb.status;
         // hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
         if (status & IXGBE_ADVTXD_STAT_DD) {
             int32_t i = clean_index;
             while (true) {
-                struct pkt_buf* buf = (struct pkt_buf *) queue->virtual_addresses[i];
+                struct pkt_buf *buf = (struct pkt_buf *) queue->virtual_addresses[i];
                 pkt_buf_free(buf);
                 if (i == cleanup_to) {
                     break;
@@ -769,10 +769,10 @@ uint32_t Ixgbe_device::tx_batch(uint16_t queue_id, struct pkt_buf* bufs[],
         if (clean_index == next_index) {
             break;
         }
-        struct pkt_buf* buf = bufs[sent];
+        struct pkt_buf *buf = bufs[sent];
         // remember virtual address to clean it up later
-        queue->virtual_addresses[queue->tx_index] = (void*) buf;
-        volatile union ixgbe_adv_tx_desc* txd = queue->descriptors + queue->tx_index;
+        queue->virtual_addresses[queue->tx_index] = (void *) buf;
+        volatile union ixgbe_adv_tx_desc *txd = queue->descriptors + queue->tx_index;
         queue->tx_index = next_index;
         // NIC reads from here
         txd->read.buffer_addr = buf->buf_addr_phy + offsetof(struct pkt_buf, data);

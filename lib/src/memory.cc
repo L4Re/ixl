@@ -66,7 +66,7 @@ struct dma_memory Ixl::memory_allocate_dma(Ixl_device &dev, size_t size) {
 }
 
 // Allocate a batch of packet buffers from this chunk
-uint32_t Ixl::Mempool_chunk::pkt_buf_alloc_batch(struct pkt_buf* bufs[],
+uint32_t Ixl::Mempool_chunk::pkt_buf_alloc_batch(struct pkt_buf *bufs[],
                                                  uint32_t num_bufs) {
 
     for (uint32_t i = 0; i < num_bufs; i++) {
@@ -83,13 +83,13 @@ uint32_t Ixl::Mempool_chunk::pkt_buf_alloc_batch(struct pkt_buf* bufs[],
         if (entry_id == UINT32_MAX)
             break;
 
-        bufs[i] = (struct pkt_buf*) (((uint8_t*) base_addr) + entry_id * buf_size);
+        bufs[i] = (struct pkt_buf *) (((uint8_t *) base_addr) + entry_id * buf_size);
     }
     return num_bufs;
 }
 
-void Ixl::pkt_buf_free(struct pkt_buf* buf) {
-    struct   Mempool_chunk* chunk = buf->mempool;
+void Ixl::pkt_buf_free(struct pkt_buf *buf) {
+    struct   Mempool_chunk *chunk = buf->mempool;
     uint32_t invalid              = UINT32_MAX;  // Marks invalid "pointer"
     bool     list_empty           = true;        // Is chunk's free_queue empty?
 
@@ -153,7 +153,7 @@ Ixl::Mempool::Mempool(Ixl_device &dev, uint32_t num_entries,
 }
 
 // Allocate a batch of packet buffers from a mempool.
-uint32_t Ixl::Mempool::pkt_buf_alloc_batch(struct pkt_buf* bufs[],
+uint32_t Ixl::Mempool::pkt_buf_alloc_batch(struct pkt_buf *bufs[],
                                            uint32_t num_bufs) {
     uint64_t idx;                              // Index of current chunk
     uint64_t tries          = chunk_cnt.load();// How many chunks to try?
@@ -186,10 +186,10 @@ uint32_t Ixl::Mempool::pkt_buf_alloc_batch(struct pkt_buf* bufs[],
 }
 
 // Allocate a single packet from a mempool.
-struct pkt_buf* Ixl::Mempool::pkt_buf_alloc(void) {
+struct pkt_buf *Ixl::Mempool::pkt_buf_alloc(void) {
     uint64_t        idx;                            // Index of current chunk
     uint64_t        tries = chunk_cnt.load();       // How many chunks to try?
-    struct pkt_buf* buf   = NULL;
+    struct pkt_buf *buf   = NULL;
 
     // We try each chunk
     for (unsigned int i = 0; i < tries; i++) {
@@ -268,7 +268,7 @@ void Ixl::Mempool::cancel_reservation(uint32_t count) {
 
 // allocate a memory pool from which DMA'able packet buffers can be allocated
 // entry_size can be 0 to use the default
-struct Ixl::Mempool_chunk* Ixl::Mempool::allocate_mempool_chunk(void) {
+struct Ixl::Mempool_chunk *Ixl::Mempool::allocate_mempool_chunk(void) {
     struct Mempool_chunk *chunk  =
             (struct Mempool_chunk *)
             calloc(1, sizeof(struct Mempool_chunk) +
@@ -282,7 +282,7 @@ struct Ixl::Mempool_chunk* Ixl::Mempool::allocate_mempool_chunk(void) {
     chunk->queue_tail  = chunk_entries - 1;
 
     for (uint32_t i = 0; i < chunk_entries; i++) {
-        struct pkt_buf* buf = (struct pkt_buf*) (((uint8_t*) chunk->base_addr) + i * elem_size);
+        struct pkt_buf *buf = (struct pkt_buf *) (((uint8_t *) chunk->base_addr) + i * elem_size);
 
         // Since the memory inside the DMA window was allocated physically
         // contiguously, we can just use an offset from the mempool's physical
