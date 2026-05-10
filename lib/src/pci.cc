@@ -354,8 +354,7 @@ void Ixl::pcidev_enable_msix(uint32_t irqnum, l4_icu_msi_info_t info,
 /* Acquires a PCI devices at a certain index on the "vbus" capability.      */
 L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
                                  uint32_t idx, uint8_t pci_class,
-                                 uint8_t pci_sclass)
-{
+                                 uint8_t pci_sclass) {
     ixl_debug("Starting device discovery...");
     auto root = vbus->root();
     L4vbus::Pci_dev child{};            // Child device for iterating
@@ -411,5 +410,5 @@ L4vbus::Pci_dev Ixl::pci_get_dev(L4::Cap<L4vbus::Vbus> vbus,
                  idx, pci_class);
     }
 
-    return(child);
+    return child;
 }
